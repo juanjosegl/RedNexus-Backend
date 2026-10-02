@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+*.log
+.env
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Prisma client generado (se crea con npm install)
+/src/generated

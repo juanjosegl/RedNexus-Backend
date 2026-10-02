@@ -1,0 +1,87 @@
+// Modelo de datos del MVP de RedNexus.
+// Los embeddings se guardan como vector(768) de pgvector (tamano de nomic-embed-text)
+// y se consultan con SQL directo desde el modulo matching.
+
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  moduleFormat    = "esm"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+model User {
+  id           String                      @id @default(uuid())
+  email        String                      @unique
+  passwordHash String
+  name         String
+  bio          String? // habilidades en texto libre
+  tags         String[] // materias y nivel
+  embedding    Unsupported("vector(768)")?
+  createdAt    DateTime                    @default(now())
+
+  requests     HelpRequest[]
+  matches      Match[]
+  ratingsGiven Rating[]      @relation("RatingAuthor")
+  ratingsGot   Rating[]      @relation("RatingHelper")
+}
+
+enum RequestStatus {
+  PENDING // en cola esperando a la IA
+  MATCHED // ya tiene candidatos
+  ACCEPTED // un ayudante acepto
+  CLOSED
+}
+
+model HelpRequest {
+  id        String                      @id @default(uuid())
+  authorId  String
+  author    User                        @relation(fields: [authorId], references: [id])
+  text      String
+  audioPath String? // nota de voz original, si la hay
+  area      String? // clasificacion del LLM
+  topics    String[]
+  level     String?
+  embedding Unsupported("vector(768)")?
+  status    RequestStatus               @default(PENDING)
+  createdAt DateTime                    @default(now())
+
+  matches Match[]
+  ratings Rating[]
+}
+
+enum MatchStatus {
+  PROPOSED
+  ACCEPTED
+  REJECTED
+}
+
+model Match {
+  id          String      @id @default(uuid())
+  requestId   String
+  request     HelpRequest @relation(fields: [requestId], references: [id])
+  helperId    String
+  helper      User        @relation(fields: [helperId], references: [id])
+  score       Float
+  explanation String? // frase del LLM de por que encaja
+  status      MatchStatus @default(PROPOSED)
+  createdAt   DateTime    @default(now())
+
+  @@unique([requestId, helperId])
+}
+
+model Rating {
+  id        String      @id @default(uuid())
+  requestId String
+  request   HelpRequest @relation(fields: [requestId], references: [id])
+  authorId  String
+  author    User        @relation("RatingAuthor", fields: [authorId], references: [id])
+  helperId  String
+  helper    User        @relation("RatingHelper", fields: [helperId], references: [id])
+  stars     Int
+  createdAt DateTime    @default(now())
+}

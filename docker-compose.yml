@@ -1,0 +1,27 @@
+# Servicios de apoyo para desarrollo local: PostgreSQL con pgvector y Redis.
+# Uso: docker compose up -d   |   apagar: docker compose down
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: rednexus
+      POSTGRES_PASSWORD: rednexus
+      POSTGRES_DB: rednexus
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rednexus']
+      interval: 5s
+      retries: 10
+    mem_limit: 512m
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    mem_limit: 128m
+
+volumes:
+  pgdata:

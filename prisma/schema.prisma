@@ -3,10 +3,13 @@
 // y se consultan con SQL directo desde el modulo matching.
 
 generator client {
-  provider        = "prisma-client"
-  output          = "../src/generated/prisma"
-  moduleFormat    = "esm"
-  previewFeatures = ["postgresqlExtensions"]
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  // Explicito: si no, Prisma lo deduce del tsconfig y en Docker (sin tsconfig al generar)
+  // usa ".ts", y `node dist/main` no encuentra los modulos.
+  importFileExtension = "js"
+  previewFeatures     = ["postgresqlExtensions"]
 }
 
 datasource db {

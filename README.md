@@ -6,11 +6,13 @@ Stack: NestJS 12 (TypeScript), PostgreSQL + pgvector, Prisma, Redis + BullMQ, Ol
 
 ## Requisitos
 
-- Node.js 24 (con [fnm](https://github.com/Schniz/fnm): `fnm use` lee `.nvmrc`)
-- Docker con Compose (en Mac, [Colima](https://github.com/abiosoft/colima))
+- Node.js 24 (con [nvm](https://github.com/nvm-sh/nvm) o [fnm](https://github.com/Schniz/fnm); ambos leen `.nvmrc`)
+- Docker con Compose (en Mac, [Colima](https://github.com/abiosoft/colima); en Windows, Docker Desktop con WSL2)
 - Opcional para la IA: [Ollama](https://ollama.com) con `llama3.2:3b` y `nomic-embed-text`
 
-## Arranque en 5 comandos
+**¿Primera vez?** Sigue la [guía del equipo](https://github.com/juanjosegl/RedNexus-Platform/blob/developer/docs/guia-del-equipo.md); las tareas están en [tareas.md](https://github.com/juanjosegl/RedNexus-Platform/blob/developer/docs/tareas.md).
+
+## Arranque
 
 ```bash
 git checkout developer
@@ -18,10 +20,15 @@ cp .env.example .env
 docker compose up -d          # Postgres + pgvector y Redis
 npm install                   # también genera el cliente de Prisma
 npm run db:migrate            # crea las tablas
-npm run start:dev             # API en http://localhost:3000/health
+npm run db:seed               # datos sintéticos de prueba
+npm run start:dev             # API en http://localhost:3000/api/health
 ```
 
 En otra terminal, el worker de IA: `npm run start:worker:dev`.
+
+- **Prefijo:** todas las rutas de la API van bajo `/api`.
+- **Swagger:** el contrato de la API está en http://localhost:3000/api/docs. Documenta cada controlador nuevo con `@ApiTags` y `@ApiOperation`, y cada DTO con `@ApiProperty` (ejemplo: `src/modules/health/health.controller.ts`). Así el equipo de frontend sabe qué enviar y qué recibir sin preguntar.
+- **Docker y Kubernetes:** la imagen Docker (`Dockerfile`) se usa para la API, el worker y las migraciones. Su despliegue está en [RedNexus-Platform](https://github.com/juanjosegl/RedNexus-Platform).
 
 ## Estructura
 
@@ -39,7 +46,7 @@ src/
     ├── ai/            # Ollama y whisper.cpp
     ├── queue/         # colas BullMQ
     ├── ratings/       # calificaciones
-    └── health/        # /health
+    └── health/        # /api/health
 prisma/                # schema, migraciones y datos sintéticos
 ```
 
@@ -51,7 +58,7 @@ prisma/                # schema, migraciones y datos sintéticos
 | `test` | QA. Entra por PR desde `developer`. |
 | `developer` | Integración diaria. Entra por PR desde `feature/*` o `fix/*`. |
 
-Flujo: `git checkout developer && git pull`, luego `git checkout -b feature/RN-12-descripcion`, commits con [Conventional Commits](https://www.conventionalcommits.org/es/) (`feat: ...`, `fix: ...`) y PR hacia `developer`.
+Flujo: `git switch developer && git pull`, luego `git switch -c feature/BE-01-auth` (tipo/ID-de-la-tarea-descripcion), commits como `feat(auth): registro con contraseña cifrada` y PR hacia `developer`. Reglas completas en [CONTRIBUTING](https://github.com/juanjosegl/RedNexus-Platform/blob/developer/CONTRIBUTING.md).
 
 ## Scripts
 

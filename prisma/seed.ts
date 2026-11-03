@@ -1,12 +1,11 @@
 // Datos sinteticos para desarrollo y demo. Nunca cargar datos reales de estudiantes (Ley 1581).
-// Se puede repetir (upsert).
+// Se puede correr varias veces (upsert)
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import { profiles } from './data/profiles.js';
 
-// Contraseña de todas las cuentas de prueba
 const DEMO_PASSWORD = 'demo12345';
 
 const prisma = new PrismaClient({

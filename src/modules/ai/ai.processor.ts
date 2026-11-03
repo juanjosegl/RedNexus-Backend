@@ -6,6 +6,7 @@ import {
   AI_QUEUE,
   AiJob,
   type EmbedProfileJobData,
+  type MatchJobData,
 } from '../queue/queue.constants.js';
 
 // Corre solo dentro del worker
@@ -23,6 +24,8 @@ export class AiProcessor extends WorkerHost {
         return this.matching.indexProfile(
           (job.data as EmbedProfileJobData).userId,
         );
+      case AiJob.Match:
+        return this.matching.matchRequest((job.data as MatchJobData).requestId);
       default:
         this.logger.warn(`Trabajo desconocido ${job.name} (${job.id})`);
     }

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   AI_PROVIDER,
@@ -9,6 +9,8 @@ import { toPgVector } from '../ai/text.js';
 
 @Injectable()
 export class MatchingService {
+  private readonly logger = new Logger(MatchingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject(AI_PROVIDER) private readonly ai: AiProvider,
@@ -22,5 +24,38 @@ export class MatchingService {
     const embedding = await this.ai.embed(text);
     await this.prisma.$executeRaw`
       UPDATE "User" SET embedding = ${toPgVector(embedding)}::vector WHERE id = ${userId}`;
+  }
+
+  async matchRequest(requestId: string) {
+    const request = await this.prisma.helpRequest.findUnique({
+      where: { id: requestId },
+    });
+    // ya emparejada (reintento): no hacer nada
+    if (!request || request.status !== 'PENDING') return;
+
+    const embedding = await this.tryOrNull('calcular el embedding', () =>
+      this.ai.embed(request.text),
+    );
+    if (embedding) {
+      await this.prisma.$executeRaw`
+        UPDATE "HelpRequest" SET embedding = ${toPgVector(embedding)}::vector WHERE id = ${requestId}`;
+    }
+    this.logger.log(
+      `Solicitud ${requestId}: embedding ${embedding ? 'calculado' : 'pendiente'} (IA: ${this.ai.name})`,
+    );
+  }
+
+  private async tryOrNull<T>(
+    action: string,
+    fn: () => Promise<T>,
+  ): Promise<T | null> {
+    try {
+      return await fn();
+    } catch (error) {
+      this.logger.warn(
+        `No se pudo ${action} con ${this.ai.name}: ${(error as Error).message}`,
+      );
+      return null;
+    }
   }
 }

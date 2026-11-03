@@ -41,7 +41,7 @@ export class AuthService {
     const found = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
-    // Mismo mensaje si no existe el email o la contraseña no coincide: no revela qué cuentas hay
+    // mismo error en ambos casos para no revelar si el email existe
     if (!found || !(await bcrypt.compare(dto.password, found.passwordHash))) {
       throw new UnauthorizedException('Email o contraseña incorrectos');
     }

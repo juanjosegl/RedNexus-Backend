@@ -13,7 +13,7 @@ export class RegisterDto {
 
   @ApiProperty({ example: 'demo12345', minLength: 8 })
   @IsString()
-  @Length(8, 72) // bcrypt solo usa los primeros 72 bytes
+  @Length(8, 72) // limite de bcrypt
   password: string;
 
   @ApiProperty({ example: 'Nuevo Estudiante' })

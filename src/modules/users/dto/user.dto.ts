@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-// Usuario tal como lo ve su dueño. Nunca incluye passwordHash ni embedding.
+// Sin passwordHash ni embedding
 export class UserDto {
   @ApiProperty({ example: '3f1c2a9e-8b7d-4c1e-9f0a-1b2c3d4e5f60' })
   id: string;

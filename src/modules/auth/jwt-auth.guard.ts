@@ -8,7 +8,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { IS_PUBLIC, JwtPayload } from './auth.decorators.js';
 
-// Guard global: valida el Bearer token y deja el payload en request.user.
+// Guard global para el Bearer token
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(

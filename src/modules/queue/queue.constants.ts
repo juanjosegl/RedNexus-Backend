@@ -8,10 +8,16 @@ export const AiJob = {
   Transcribe: 'transcribe',
   // Clasificar la solicitud, generar su embedding y buscar el top 3
   Match: 'match',
+  // Calcular el embedding de un perfil
+  EmbedProfile: 'embed-profile',
 } as const;
 
 export interface MatchJobData {
   requestId: string;
+}
+
+export interface EmbedProfileJobData {
+  userId: string;
 }
 
 // 3 reintentos con backoff. Sin jobId fijo: BullMQ ignora ids de trabajos ya guardados

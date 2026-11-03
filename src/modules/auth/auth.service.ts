@@ -55,6 +55,15 @@ export class AuthService {
     return { accessToken: await this.sign(user), user };
   }
 
+  async me(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: userSelect,
+    });
+    if (!user) throw new UnauthorizedException('La cuenta ya no existe');
+    return user;
+  }
+
   private sign(user: { id: string; email: string }) {
     return this.jwt.signAsync({ sub: user.id, email: user.email });
   }

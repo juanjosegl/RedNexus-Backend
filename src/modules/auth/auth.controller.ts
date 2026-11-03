@@ -1,5 +1,6 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiOkResponse,
@@ -7,7 +8,8 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { Public } from './auth.decorators.js';
+import { UserDto } from '../users/dto/user.dto.js';
+import { CurrentUser, Public, type JwtPayload } from './auth.decorators.js';
 import { AuthService } from './auth.service.js';
 import { AuthResponseDto } from './dto/auth-response.dto.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -35,5 +37,14 @@ export class AuthController {
   @ApiUnauthorizedResponse({ description: 'Email o contraseña incorrectos' })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  @Get('me')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Usuario de la sesión actual' })
+  @ApiOkResponse({ type: UserDto })
+  @ApiUnauthorizedResponse({ description: 'Sin token o token inválido' })
+  me(@CurrentUser() user: JwtPayload) {
+    return this.auth.me(user.sub);
   }
 }

@@ -1,0 +1,30 @@
+import { Body, Controller, Post } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { CurrentUser, type JwtPayload } from '../auth/auth.decorators.js';
+import {
+  CreatedHelpRequestDto,
+  CreateHelpRequestDto,
+} from './dto/help-request.dto.js';
+import { HelpRequestsService } from './help-requests.service.js';
+
+@ApiTags('help-requests')
+@ApiBearerAuth()
+@Controller('help-requests')
+export class HelpRequestsController {
+  constructor(private readonly helpRequests: HelpRequestsService) {}
+
+  @Post()
+  @ApiOperation({
+    summary:
+      'Publica una solicitud de ayuda; la IA busca candidatos en segundo plano',
+  })
+  @ApiCreatedResponse({ type: CreatedHelpRequestDto })
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateHelpRequestDto) {
+    return this.helpRequests.create(user.sub, dto);
+  }
+}

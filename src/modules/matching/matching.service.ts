@@ -3,15 +3,16 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   AI_PROVIDER,
   type AiProvider,
+  type Classification,
   profileText,
 } from '../ai/ai-provider.js';
 import { MockAiProvider } from '../ai/providers/mock.provider.js';
-import { toPgVector } from '../ai/text.js';
+import { overlap, tokenize, toPgVector } from '../ai/text.js';
 import { CANDIDATE_POOL, type Candidate, rank } from './ranking.js';
 
 export interface MatchResult {
   requestId: string;
-  strategy: 'semantic' | 'skipped';
+  strategy: 'semantic' | 'tags' | 'skipped';
   candidates: number;
   ms: number;
 }
@@ -55,12 +56,21 @@ export class MatchingService {
       this.ai.embed(request.text),
     );
 
-    const strategy: MatchResult['strategy'] = 'semantic';
+    let strategy: MatchResult['strategy'] = 'semantic';
     let pool: Candidate[] = [];
     if (embedding) {
       await this.prisma.$executeRaw`
         UPDATE "HelpRequest" SET embedding = ${toPgVector(embedding)}::vector WHERE id = ${requestId}`;
       pool = await this.semanticCandidates(embedding, request.authorId);
+    }
+    // sin IA o sin perfiles indexados -> respaldo por etiquetas
+    if (pool.length === 0) {
+      strategy = 'tags';
+      pool = await this.tagCandidates(
+        request.text,
+        classification,
+        request.authorId,
+      );
     }
 
     const top = rank(pool, request.authorId);
@@ -117,6 +127,39 @@ export class MatchingService {
       WHERE u.embedding IS NOT NULL AND u.id <> ${authorId}
       ORDER BY u.embedding <=> ${vector}::vector
       LIMIT ${CANDIDATE_POOL}`;
+  }
+
+  // respaldo: % de palabras de la solicitud que estan en bio/etiquetas
+  private async tagCandidates(
+    text: string,
+    classification: Classification | null,
+    authorId: string,
+  ) {
+    const wanted = tokenize(
+      [text, classification?.area, ...(classification?.topics ?? [])].join(' '),
+    );
+    if (wanted.length === 0) return [];
+    const users = await this.prisma.user.findMany({
+      where: { id: { not: authorId } },
+      select: {
+        id: true,
+        name: true,
+        bio: true,
+        tags: true,
+        ratingsGot: { select: { stars: true } },
+      },
+    });
+    return users
+      .map(({ ratingsGot, ...u }) => ({
+        ...u,
+        similarity:
+          overlap(wanted, tokenize(`${u.bio ?? ''} ${u.tags.join(' ')}`))
+            .length / wanted.length,
+        avgRating: ratingsGot.length
+          ? ratingsGot.reduce((s, r) => s + r.stars, 0) / ratingsGot.length
+          : null,
+      }))
+      .filter((c) => c.similarity > 0);
   }
 
   private async tryOrNull<T>(

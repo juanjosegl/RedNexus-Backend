@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AI_QUEUE, AiJob, defaultJobOptions, type MatchJobData } from '../queue/queue.constants.js';
@@ -41,5 +41,46 @@ export class HelpRequestsService {
       select: summarySelect,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async findOne(userId: string, id: string) {
+    const request = await this.prisma.helpRequest.findUnique({
+      where: { id },
+      select: {
+        ...summarySelect,
+        authorId: true,
+        matches: {
+          orderBy: { score: 'desc' },
+          select: {
+            id: true,
+            score: true,
+            explanation: true,
+            status: true,
+            helper: {
+              select: {
+                id: true,
+                name: true,
+                bio: true,
+                tags: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!request) throw new NotFoundException('La solicitud no existe');
+    if (request.authorId !== userId)
+      throw new ForbiddenException('Solo el autor ve esta solicitud');
+
+    const { authorId: _authorId, matches, ...rest } = request;
+    return {
+      ...rest,
+      // el email solo se muestra si acepto
+      matches: matches.map(({ helper: { email, ...helper }, ...m }) => ({
+        ...m,
+        helper: m.status === 'ACCEPTED' ? { ...helper, email } : helper,
+      })),
+    };
   }
 }

@@ -1,11 +1,22 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import {
+  AI_QUEUE,
+  AiJob,
+  defaultJobOptions,
+  type EmbedProfileJobData,
+} from '../queue/queue.constants.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { userSelect } from './dto/user.dto.js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue(AI_QUEUE) private readonly queue: Queue,
+  ) {}
 
   async me(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -18,6 +29,13 @@ export class UsersService {
 
   async update(userId: string, dto: UpdateProfileDto) {
     await this.prisma.user.update({ where: { id: userId }, data: dto });
+    if (dto.bio !== undefined || dto.tags !== undefined) {
+      await this.queue.add(
+        AiJob.EmbedProfile,
+        { userId } satisfies EmbedProfileJobData,
+        defaultJobOptions,
+      );
+    }
     return this.me(userId);
   }
 

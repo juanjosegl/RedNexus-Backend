@@ -5,6 +5,7 @@ import {
   type AiProvider,
   profileText,
 } from '../ai/ai-provider.js';
+import { MockAiProvider } from '../ai/providers/mock.provider.js';
 import { toPgVector } from '../ai/text.js';
 import { CANDIDATE_POOL, type Candidate, rank } from './ranking.js';
 
@@ -14,6 +15,9 @@ export interface MatchResult {
   candidates: number;
   ms: number;
 }
+
+// explicacion de respaldo si el LLM falla
+const fallbackExplainer = new MockAiProvider();
 
 @Injectable()
 export class MatchingService {
@@ -61,10 +65,11 @@ export class MatchingService {
 
     const top = rank(pool, request.authorId);
     const explanations = await Promise.all(
-      top.map((c) =>
-        this.tryOrNull('explicar el candidato', () =>
-          this.ai.explain(request.text, c),
-        ),
+      top.map(
+        async (c) =>
+          (await this.tryOrNull('explicar el candidato', () =>
+            this.ai.explain(request.text, c),
+          )) ?? (await fallbackExplainer.explain(request.text, c)),
       ),
     );
 

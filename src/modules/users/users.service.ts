@@ -21,6 +21,15 @@ export class UsersService {
     return this.me(userId);
   }
 
+  async publicProfile(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, name: true, bio: true, tags: true },
+    });
+    if (!user) throw new NotFoundException('El usuario no existe');
+    return { ...user, rating: await this.rating(id) };
+  }
+
   private async rating(helperId: string) {
     const { _avg } = await this.prisma.rating.aggregate({
       where: { helperId },

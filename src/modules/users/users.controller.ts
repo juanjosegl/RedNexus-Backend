@@ -1,12 +1,20 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser, type JwtPayload } from '../auth/auth.decorators.js';
-import { ProfileDto } from './dto/profile.dto.js';
+import { ProfileDto, PublicProfileDto } from './dto/profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { UsersService } from './users.service.js';
 
@@ -31,5 +39,13 @@ export class UsersController {
   @ApiOkResponse({ type: ProfileDto })
   update(@CurrentUser() user: JwtPayload, @Body() dto: UpdateProfileDto) {
     return this.users.update(user.sub, dto);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Perfil público de otro usuario (sin email)' })
+  @ApiOkResponse({ type: PublicProfileDto })
+  @ApiNotFoundResponse()
+  publicProfile(@Param('id', ParseUUIDPipe) id: string) {
+    return this.users.publicProfile(id);
   }
 }

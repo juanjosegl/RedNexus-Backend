@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
+import { UsersController } from './users.controller.js';
+import { UsersService } from './users.service.js';
 
-// Pendiente: ver el issue de este modulo en GitHub.
-@Module({})
+@Module({
+  controllers: [UsersController],
+  providers: [UsersService],
+})
 export class UsersModule {}

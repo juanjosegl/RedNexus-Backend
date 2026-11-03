@@ -1,14 +1,30 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { AI_QUEUE } from '../queue/queue.constants.js';
+import { MatchingService } from '../matching/matching.service.js';
+import {
+  AI_QUEUE,
+  AiJob,
+  type EmbedProfileJobData,
+} from '../queue/queue.constants.js';
 
-// Corre solo dentro del worker. Aqui se conectara con Ollama y whisper.cpp (semana 3).
-@Processor(AI_QUEUE)
+// Corre solo dentro del worker
+@Processor(AI_QUEUE, { concurrency: 2 })
 export class AiProcessor extends WorkerHost {
   private readonly logger = new Logger(AiProcessor.name);
 
+  constructor(private readonly matching: MatchingService) {
+    super();
+  }
+
   async process(job: Job) {
-    this.logger.log(`Trabajo ${job.name} recibido (${job.id})`);
+    switch (job.name) {
+      case AiJob.EmbedProfile:
+        return this.matching.indexProfile(
+          (job.data as EmbedProfileJobData).userId,
+        );
+      default:
+        this.logger.warn(`Trabajo desconocido ${job.name} (${job.id})`);
+    }
   }
 }

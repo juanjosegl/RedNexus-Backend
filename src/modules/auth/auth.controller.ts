@@ -1,12 +1,15 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import {
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service.js';
 import { AuthResponseDto } from './dto/auth-response.dto.js';
+import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 
 @ApiTags('auth')
@@ -20,5 +23,14 @@ export class AuthController {
   @ApiConflictResponse({ description: 'El email ya está registrado' })
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
+  }
+
+  @Post('login')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Inicia sesión y devuelve el token' })
+  @ApiOkResponse({ type: AuthResponseDto })
+  @ApiUnauthorizedResponse({ description: 'Email o contraseña incorrectos' })
+  login(@Body() dto: LoginDto) {
+    return this.auth.login(dto);
   }
 }

@@ -1,8 +1,13 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { userSelect } from '../users/dto/user.dto.js';
+import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 
 const BCRYPT_ROUNDS = 10;
@@ -29,6 +34,24 @@ export class AuthService {
       },
       select: userSelect,
     });
+    return { accessToken: await this.sign(user), user };
+  }
+
+  async login(dto: LoginDto) {
+    const found = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
+    // Mismo mensaje si no existe el email o la contraseña no coincide: no revela qué cuentas hay
+    if (!found || !(await bcrypt.compare(dto.password, found.passwordHash))) {
+      throw new UnauthorizedException('Email o contraseña incorrectos');
+    }
+    const user = {
+      id: found.id,
+      email: found.email,
+      name: found.name,
+      bio: found.bio,
+      tags: found.tags,
+    };
     return { accessToken: await this.sign(user), user };
   }
 

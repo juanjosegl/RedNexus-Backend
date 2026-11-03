@@ -1,15 +1,7 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiOperation,
-  ApiTags,
-} from '@nestjs/swagger';
+import { Body, Controller, Get, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, type JwtPayload } from '../auth/auth.decorators.js';
-import {
-  CreatedHelpRequestDto,
-  CreateHelpRequestDto,
-} from './dto/help-request.dto.js';
+import { CreatedHelpRequestDto, CreateHelpRequestDto, HelpRequestSummaryDto } from './dto/help-request.dto.js';
 import { HelpRequestsService } from './help-requests.service.js';
 
 @ApiTags('help-requests')
@@ -26,5 +18,14 @@ export class HelpRequestsController {
   @ApiCreatedResponse({ type: CreatedHelpRequestDto })
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateHelpRequestDto) {
     return this.helpRequests.create(user.sub, dto);
+  }
+
+  @Get('mine')
+  @ApiOperation({
+    summary: 'Mis solicitudes, de la más reciente a la más antigua',
+  })
+  @ApiOkResponse({ type: [HelpRequestSummaryDto] })
+  findMine(@CurrentUser() user: JwtPayload) {
+    return this.helpRequests.findMine(user.sub);
   }
 }

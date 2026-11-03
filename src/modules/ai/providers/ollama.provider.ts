@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import {
   AiProvider,
   Classification,
@@ -34,6 +35,7 @@ const CLASSIFY_SCHEMA = {
 
 export class OllamaAiProvider implements AiProvider {
   readonly name = 'ollama';
+  private readonly logger = new Logger(OllamaAiProvider.name);
 
   constructor(private readonly options: OllamaOptions) {}
 
@@ -51,13 +53,21 @@ export class OllamaAiProvider implements AiProvider {
     return vector;
   }
 
+  // un reintento si no devuelve JSON valido
   async classify(text: string): Promise<Classification> {
-    const content = await this.chat(
-      CLASSIFY_SYSTEM,
-      `<solicitud>\n${text}\n</solicitud>`,
-      CLASSIFY_SCHEMA,
-    );
-    return JSON.parse(content) as Classification;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const content = await this.chat(
+        CLASSIFY_SYSTEM,
+        `<solicitud>\n${text}\n</solicitud>`,
+        CLASSIFY_SCHEMA,
+      );
+      const parsed = parseClassification(content);
+      if (parsed) return parsed;
+      this.logger.warn(
+        `Clasificación inválida (intento ${attempt}): ${content.slice(0, 200)}`,
+      );
+    }
+    throw new Error('El modelo no devolvió una clasificación válida');
   }
 
   // TODO IA-04
@@ -98,5 +108,22 @@ export class OllamaAiProvider implements AiProvider {
         `Ollama ${path} respondió ${res.status}: ${await res.text()}`,
       );
     return (await res.json()) as T;
+  }
+}
+
+export function parseClassification(content: string): Classification | null {
+  try {
+    const data = JSON.parse(content);
+    if (typeof data?.area !== 'string' || !Array.isArray(data.topics))
+      return null;
+    const level = LEVELS.includes(data.level) ? data.level : 'intermedio';
+    const topics = data.topics
+      .filter((t: unknown): t is string => typeof t === 'string')
+      .map((t: string) => t.toLowerCase().trim())
+      .filter(Boolean)
+      .slice(0, 5);
+    return { area: data.area.toLowerCase().trim() || 'general', topics, level };
+  } catch {
+    return null;
   }
 }

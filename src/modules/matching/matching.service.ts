@@ -33,6 +33,9 @@ export class MatchingService {
     // ya emparejada (reintento): no hacer nada
     if (!request || request.status !== 'PENDING') return;
 
+    const classification = await this.tryOrNull('clasificar la solicitud', () =>
+      this.ai.classify(request.text),
+    );
     const embedding = await this.tryOrNull('calcular el embedding', () =>
       this.ai.embed(request.text),
     );
@@ -40,8 +43,14 @@ export class MatchingService {
       await this.prisma.$executeRaw`
         UPDATE "HelpRequest" SET embedding = ${toPgVector(embedding)}::vector WHERE id = ${requestId}`;
     }
+    if (classification) {
+      await this.prisma.helpRequest.update({
+        where: { id: requestId },
+        data: classification,
+      });
+    }
     this.logger.log(
-      `Solicitud ${requestId}: embedding ${embedding ? 'calculado' : 'pendiente'} (IA: ${this.ai.name})`,
+      `Solicitud ${requestId}: área ${classification?.area ?? 'sin clasificar'}, embedding ${embedding ? 'calculado' : 'pendiente'} (IA: ${this.ai.name})`,
     );
   }
 

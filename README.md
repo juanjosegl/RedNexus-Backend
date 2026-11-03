@@ -24,7 +24,20 @@ npm run db:seed               # datos sintéticos de prueba
 npm run start:dev             # API en http://localhost:3000/api/health
 ```
 
-En otra terminal, el worker de IA: `npm run start:worker:dev`.
+En otra terminal, el worker de IA: `npm run start:worker:dev`. Al arrancar calcula los embeddings de los perfiles que no los tengan y retoma las solicitudes que quedaron en `PENDING`.
+
+**Probar el flujo en Swagger:** inicia sesión con `estudiante.demo@rednexus.dev` / `demo12345` en `POST /api/auth/login`, copia el `accessToken` en **Authorize**, crea una solicitud en `POST /api/help-requests` y consulta `GET /api/help-requests/{id}`: en uno o dos segundos pasa a `MATCHED` con sus 3 candidatos. Todas las cuentas del seed usan la contraseña `demo12345`.
+
+### IA: mock u Ollama
+
+| `AI_PROVIDER` | Qué hace | Cuándo usarlo |
+| --- | --- | --- |
+| `mock` (por defecto) | Embeddings por palabras en común, clasificación por palabras clave y explicación con plantilla. Sin red | Programar, CI, y cuando el nodo de IA está apagado |
+| `ollama` | `nomic-embed-text` para embeddings y `llama3.2:3b` para clasificar y explicar | Demo y experimentos |
+
+Para pasar a Ollama: `ollama pull nomic-embed-text && ollama pull llama3.2:3b`, pon `AI_PROVIDER=ollama` en `.env`, vuelve a correr `npm run db:seed` (borra los embeddings del mock, que no son comparables con los de Ollama) y reinicia el worker.
+
+Si Ollama no responde, el worker no falla: reintenta, empareja por etiquetas y explica con la plantilla (degradación elegante). El log del worker dice qué estrategia usó y cuánto tardó.
 
 - **Prefijo:** todas las rutas de la API van bajo `/api`.
 - **Swagger:** el contrato de la API está en http://localhost:3000/api/docs. Documenta cada controlador nuevo con `@ApiTags` y `@ApiOperation`, y cada DTO con `@ApiProperty` (ejemplo: `src/modules/health/health.controller.ts`). Así el equipo de frontend sabe qué enviar y qué recibir sin preguntar.

@@ -1,8 +1,17 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { AI_QUEUE, AiJob, defaultJobOptions, type MatchJobData } from '../queue/queue.constants.js';
+import {
+  AI_QUEUE,
+  AiJob,
+  defaultJobOptions,
+  type MatchJobData,
+} from '../queue/queue.constants.js';
 import { CreateHelpRequestDto } from './dto/help-request.dto.js';
 
 const summarySelect = {
@@ -82,5 +91,20 @@ export class HelpRequestsService {
         helper: m.status === 'ACCEPTED' ? { ...helper, email } : helper,
       })),
     };
+  }
+
+  async close(userId: string, id: string) {
+    const request = await this.prisma.helpRequest.findUnique({
+      where: { id },
+      select: { authorId: true },
+    });
+    if (!request) throw new NotFoundException('La solicitud no existe');
+    if (request.authorId !== userId)
+      throw new ForbiddenException('Solo el autor cierra esta solicitud');
+    return this.prisma.helpRequest.update({
+      where: { id },
+      data: { status: 'CLOSED' },
+      select: summarySelect,
+    });
   }
 }

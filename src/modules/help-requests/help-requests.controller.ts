@@ -1,7 +1,28 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiForbiddenResponse, ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, type JwtPayload } from '../auth/auth.decorators.js';
-import { CreatedHelpRequestDto, CreateHelpRequestDto, HelpRequestDetailDto, HelpRequestSummaryDto } from './dto/help-request.dto.js';
+import {
+  CreatedHelpRequestDto,
+  CreateHelpRequestDto,
+  HelpRequestDetailDto,
+  HelpRequestSummaryDto,
+} from './dto/help-request.dto.js';
 import { HelpRequestsService } from './help-requests.service.js';
 
 @ApiTags('help-requests')
@@ -41,5 +62,16 @@ export class HelpRequestsController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.helpRequests.findOne(user.sub, id);
+  }
+
+  @Post(':id/close')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Cierra la solicitud' })
+  @ApiOkResponse({ type: HelpRequestSummaryDto })
+  close(
+    @CurrentUser() user: JwtPayload,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.helpRequests.close(user.sub, id);
   }
 }

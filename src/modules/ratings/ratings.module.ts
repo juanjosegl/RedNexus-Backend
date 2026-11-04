@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
+import { RatingsController } from './ratings.controller.js';
+import { RatingsService } from './ratings.service.js';
 
-// Pendiente: ver el issue de este modulo en GitHub.
-@Module({})
+@Module({
+  controllers: [RatingsController],
+  providers: [RatingsService],
+})
 export class RatingsModule {}

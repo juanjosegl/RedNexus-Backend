@@ -1,0 +1,11 @@
+{
+  // Compartido por el equipo: mismo formato al guardar en Mac y Windows
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "typescript.preferences.importModuleSpecifierEnding": "js",
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  }
+}

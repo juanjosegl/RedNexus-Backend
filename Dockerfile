@@ -22,6 +22,8 @@ COPY --from=build /app/package.json /app/prisma.config.ts ./
 COPY --from=build /app/prisma ./prisma
 # El seed (prisma/seed.ts) importa el cliente generado en TypeScript
 COPY --from=build /app/src/generated ./src/generated
+# Arranque de API + worker en un solo contenedor (Render Free)
+COPY --from=build /app/scripts ./scripts
 USER node
 EXPOSE 3000
 CMD ["node", "dist/main"]

@@ -1,4 +1,9 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 @Injectable()
@@ -53,6 +58,17 @@ export class MatchesService {
       });
       return { authorEmail: author.email };
     });
+  }
+
+  async reject(helperId: string, id: string) {
+    await this.findOwn(helperId, id);
+    const answered = await this.prisma.match.updateMany({
+      where: { id, status: 'PROPOSED' },
+      data: { status: 'REJECTED' },
+    });
+    if (answered.count === 0)
+      throw new ConflictException('Ya respondiste a esta solicitud');
+    return { id, status: 'REJECTED' as const };
   }
 
   private async findOwn(helperId: string, id: string) {

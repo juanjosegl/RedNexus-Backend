@@ -37,20 +37,32 @@ export class AiProcessor extends WorkerHost implements OnApplicationBootstrap {
     }
   }
 
-  // al arrancar: perfiles sin embedding (ej. los del seed)
+  // al arrancar: perfiles sin embedding y solicitudes que quedaron en PENDING
   async onApplicationBootstrap() {
     const profiles = await this.prisma.$queryRaw<{ id: string }[]>`
       SELECT id FROM "User"
       WHERE embedding IS NULL AND (bio IS NOT NULL OR cardinality(tags) > 0)`;
-    await this.queue.addBulk(
-      profiles.map((p) => ({
+    const pending = await this.prisma.helpRequest.findMany({
+      where: { status: 'PENDING' },
+      select: { id: true },
+    });
+    await this.queue.addBulk([
+      ...profiles.map((p) => ({
         name: AiJob.EmbedProfile,
         data: { userId: p.id },
         opts: defaultJobOptions,
       })),
-    );
-    if (profiles.length) {
-      this.logger.log(`Encolados ${profiles.length} perfiles sin embedding`);
+      // sin prioridad van primero, asi los perfiles quedan antes que las solicitudes
+      ...pending.map((r) => ({
+        name: AiJob.Match,
+        data: { requestId: r.id },
+        opts: { ...defaultJobOptions, priority: 2 },
+      })),
+    ]);
+    if (profiles.length || pending.length) {
+      this.logger.log(
+        `Encolados ${profiles.length} perfiles y ${pending.length} solicitudes pendientes`,
+      );
     }
   }
 }

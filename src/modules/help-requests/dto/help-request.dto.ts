@@ -91,7 +91,19 @@ export class MatchDto {
   helper: MatchHelperDto;
 }
 
+export class HelpRequestRatingDto {
+  @ApiProperty({ example: 5 })
+  stars: number;
+}
+
 export class HelpRequestDetailDto extends HelpRequestSummaryDto {
   @ApiProperty({ type: [MatchDto] })
   matches: MatchDto[];
+
+  @ApiPropertyOptional({
+    type: HelpRequestRatingDto,
+    nullable: true,
+    description: 'null si todavia no se califico',
+  })
+  rating: HelpRequestRatingDto | null;
 }

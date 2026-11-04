@@ -58,6 +58,7 @@ export class HelpRequestsService {
       select: {
         ...summarySelect,
         authorId: true,
+        rating: { select: { stars: true } },
         matches: {
           orderBy: { score: 'desc' },
           select: {

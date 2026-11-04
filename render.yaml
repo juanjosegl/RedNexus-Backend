@@ -1,0 +1,52 @@
+# Blueprint de Render (infraestructura como código) para el ambiente de demo gratuito.
+#   - rednexus-api: API + worker de IA en un solo contenedor (scripts/start-all.sh), plan Free.
+#   - rednexus-redis: Key Value (compatible con Redis) para la cola BullMQ, plan Free, solo red interna.
+#   - PostgreSQL + pgvector: Neon (plan Free), fuera de Render. Su URL se pide al crear el Blueprint.
+#
+# CD: Render vuelve a desplegar cada push a main cuando pasan los checks de GitHub (CI build-test).
+# Limitaciones del plan Free: el servicio se duerme tras 15 min sin tráfico (despierta en ~1 min)
+# y la Key Value no persiste en disco (al arrancar, el worker vuelve a encolar lo pendiente).
+services:
+  - type: web
+    name: rednexus-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: sh scripts/start-all.sh
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Cadena de conexión directa de Neon (sin -pooler), con ?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AI_PROVIDER
+        value: mock
+      # Perfiles sintéticos de demo (upsert); nunca datos reales (Ley 1581)
+      - key: SEED_DEMO
+        value: 'true'
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: rednexus-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: rednexus-redis
+          property: port
+
+  - type: keyvalue
+    name: rednexus-redis
+    plan: free
+    region: virginia
+    # Sin acceso externo: solo los servicios de Render en la misma región
+    ipAllowList: []
+    # BullMQ exige que Redis no descarte claves
+    maxmemoryPolicy: noeviction

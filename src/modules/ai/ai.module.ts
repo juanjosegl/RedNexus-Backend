@@ -1,16 +1,12 @@
 import { Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { QueueModule } from '../queue/queue.module.js';
 import { AI_PROVIDER, AiProvider } from './ai-provider.js';
-import { AiProcessor } from './ai.processor.js';
 import { MockAiProvider } from './providers/mock.provider.js';
 import { OllamaAiProvider } from './providers/ollama.provider.js';
 
 // AI_PROVIDER=ollama usa Ollama, si no el mock
 @Module({
-  imports: [QueueModule],
   providers: [
-    AiProcessor,
     {
       provide: AI_PROVIDER,
       inject: [ConfigService],

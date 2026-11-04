@@ -22,6 +22,8 @@ async function main() {
       create: { email: p.email, ...data },
     });
   }
+  // el worker los vuelve a indexar (necesario al cambiar de mock a ollama)
+  await prisma.$executeRaw`UPDATE "User" SET embedding = NULL WHERE email = ANY(${profiles.map((p) => p.email)})`;
   console.log(
     `Seed: ${profiles.length} perfiles sintéticos (contraseña ${DEMO_PASSWORD})`,
   );

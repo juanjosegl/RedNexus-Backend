@@ -6,10 +6,15 @@ export default () => ({
     host: process.env.REDIS_HOST ?? 'localhost',
     port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
   },
+  ai: {
+    // mock | ollama
+    provider: process.env.AI_PROVIDER ?? 'mock',
+  },
   ollama: {
     url: process.env.OLLAMA_URL ?? 'http://localhost:11434',
     llmModel: process.env.OLLAMA_LLM_MODEL ?? 'llama3.2:3b',
     embedModel: process.env.OLLAMA_EMBED_MODEL ?? 'nomic-embed-text',
+    timeoutMs: parseInt(process.env.OLLAMA_TIMEOUT_MS ?? '20000', 10),
   },
   jwtSecret: process.env.JWT_SECRET,
 });

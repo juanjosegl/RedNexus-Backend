@@ -1,5 +1,23 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
+import { AuthController } from './auth.controller.js';
+import { AuthService } from './auth.service.js';
+import { JwtAuthGuard } from './jwt-auth.guard.js';
 
-// Pendiente: ver el issue de este modulo en GitHub.
-@Module({})
+@Module({
+  imports: [
+    JwtModule.registerAsync({
+      global: true,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.getOrThrow<string>('jwtSecret'),
+        signOptions: { expiresIn: '7d' },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, { provide: APP_GUARD, useClass: JwtAuthGuard }],
+})
 export class AuthModule {}

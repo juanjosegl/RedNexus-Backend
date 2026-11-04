@@ -1,0 +1,2 @@
+# Saltos de linea LF en todos los sistemas (Windows convierte a CRLF si no se fija)
+* text=auto eol=lf

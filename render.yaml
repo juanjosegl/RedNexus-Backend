@@ -1,0 +1,73 @@
+# Blueprint de Render (infraestructura como código) para el ambiente de demo gratuito.
+#   - rednexus-api: API + worker de IA en un solo contenedor (scripts/start-all.sh), plan Free.
+#   - rednexus-redis: Key Value (compatible con Redis) para la cola BullMQ, plan Free, solo red interna.
+#   - PostgreSQL + pgvector: Neon (plan Free), fuera de Render. Su URL se pide al crear el Blueprint.
+#   - rednexus-web: frontend (Vue) como sitio estático gratuito en la CDN de Render, desde el repo
+#     RedNexus-Frontend. Llama a la API por su URL pública (CORS ya está habilitado en main.ts).
+#
+# CD: Render vuelve a desplegar cada push a main cuando pasan los checks de GitHub (CI build-test).
+# Limitaciones del plan Free: el servicio se duerme tras 15 min sin tráfico (despierta en ~1 min)
+# y la Key Value no persiste en disco (al arrancar, el worker vuelve a encolar lo pendiente).
+services:
+  - type: web
+    name: rednexus-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: sh scripts/start-all.sh
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Cadena de conexión directa de Neon (sin -pooler), con ?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AI_PROVIDER
+        value: mock
+      # Perfiles sintéticos de demo (upsert); nunca datos reales (Ley 1581)
+      - key: SEED_DEMO
+        value: 'true'
+      - key: REDIS_HOST
+        fromService:
+          type: keyvalue
+          name: rednexus-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: keyvalue
+          name: rednexus-redis
+          property: port
+
+  - type: keyvalue
+    name: rednexus-redis
+    plan: free
+    region: virginia
+    # Sin acceso externo: solo los servicios de Render en la misma región
+    ipAllowList: []
+    # BullMQ exige que Redis no descarte claves
+    maxmemoryPolicy: noeviction
+
+  - type: web
+    name: rednexus-web
+    runtime: static
+    repo: https://github.com/juanjosegl/RedNexus-Frontend
+    branch: main
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: checksPass
+    envVars:
+      # Vite lo incrusta al compilar. Si Render le asigna otro subdominio a la API
+      # (por ejemplo rednexus-api-x1y2.onrender.com), cámbialo aquí y vuelve a desplegar.
+      - key: VITE_API_URL
+        value: https://rednexus-api.onrender.com/api
+    routes:
+      # Vue Router en modo history: cualquier ruta (/login, /perfil...) sirve index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html

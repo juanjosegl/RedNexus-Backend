@@ -54,7 +54,7 @@ model HelpRequest {
   createdAt DateTime                    @default(now())
 
   matches Match[]
-  ratings Rating[]
+  rating  Rating?
 }
 
 enum MatchStatus {
@@ -79,7 +79,7 @@ model Match {
 
 model Rating {
   id        String      @id @default(uuid())
-  requestId String
+  requestId String      @unique // una calificacion por solicitud
   request   HelpRequest @relation(fields: [requestId], references: [id])
   authorId  String
   author    User        @relation("RatingAuthor", fields: [authorId], references: [id])

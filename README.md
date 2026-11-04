@@ -42,6 +42,7 @@ Si Ollama no responde, el worker no falla: reintenta, empareja por etiquetas y e
 - **Prefijo:** todas las rutas de la API van bajo `/api`.
 - **Swagger:** el contrato de la API está en http://localhost:3000/api/docs. Documenta cada controlador nuevo con `@ApiTags` y `@ApiOperation`, y cada DTO con `@ApiProperty` (ejemplo: `src/modules/health/health.controller.ts`). Así el equipo de frontend sabe qué enviar y qué recibir sin preguntar.
 - **Docker y Kubernetes:** la imagen Docker (`Dockerfile`) se usa para la API, el worker y las migraciones. Su despliegue está en [RedNexus-Platform](https://github.com/juanjosegl/RedNexus-Platform).
+- **Dokploy (servidor del diplomado):** `docker-compose.dokploy.yml` levanta Postgres, Redis, migraciones, API y worker sin publicar puertos. Cada push a `main` con el CI en verde vuelve a desplegar (job `deploy`, secreto `DOKPLOY_WEBHOOK_URL`).
 
 ## Estructura
 

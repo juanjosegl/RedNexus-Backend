@@ -1,0 +1,107 @@
+# Despliegue del backend en Dokploy (servidor compartido del diplomado).
+# Dokploy clona este repo, construye la imagen en el servidor y levanta el stack con:
+#   docker compose -f docker-compose.dokploy.yml up -d --build
+#
+# Variables (pestaña Environment de Dokploy; Dokploy las escribe en un .env junto a este archivo):
+#   POSTGRES_PASSWORD  obligatoria. Solo letras y números (va dentro de DATABASE_URL): openssl rand -hex 24
+#   JWT_SECRET         obligatoria: openssl rand -hex 32
+#   AI_PROVIDER        mock (por defecto) u ollama
+#   OLLAMA_URL         solo si AI_PROVIDER=ollama
+#   SEED_DEMO          true (por defecto) carga los perfiles sintéticos en cada despliegue (upsert)
+#
+# Reglas por ser un servidor compartido con otros grupos:
+#   - Sin "ports": nada se publica en el host (el 3000 es de Dokploy). La API sale por Traefik
+#     con el dominio que se asigna en la pestaña Domains de Dokploy (servicio rednexus-api, puerto 3000).
+#   - Sin container_name, y nombres de servicio con prefijo para no chocar en la red de Dokploy.
+#   - Límite de memoria en cada servicio.
+#
+# Prueba local: POSTGRES_PASSWORD=local JWT_SECRET=local docker compose -f docker-compose.dokploy.yml up -d --build
+
+x-api-env: &api-env
+  NODE_ENV: production
+  PORT: '3000'
+  DATABASE_URL: postgresql://rednexus:${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD}@rednexus-postgres:5432/rednexus
+  REDIS_HOST: rednexus-redis
+  REDIS_PORT: '6379'
+  JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET}
+  AI_PROVIDER: ${AI_PROVIDER:-mock}
+  OLLAMA_URL: ${OLLAMA_URL:-http://localhost:11434}
+  OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL:-llama3.2:3b}
+  OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
+  OLLAMA_TIMEOUT_MS: ${OLLAMA_TIMEOUT_MS:-20000}
+
+services:
+  rednexus-postgres:
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rednexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD}
+      POSTGRES_DB: rednexus
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rednexus']
+      interval: 5s
+      retries: 10
+    mem_limit: 512m
+
+  rednexus-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 10
+    mem_limit: 128m
+
+  # Migraciones (y datos sintéticos) antes de la API y el worker. Los tres servicios usan la misma
+  # imagen; cada uno declara "build" para que Compose nunca intente descargarla (la caché la construye una vez).
+  rednexus-migrate:
+    image: rednexus-api:dokploy
+    build: .
+    command:
+      - sh
+      - -c
+      - prisma migrate deploy && if [ "$${SEED_DEMO:-true}" = "true" ]; then prisma db seed; fi
+    environment:
+      DATABASE_URL: postgresql://rednexus:${POSTGRES_PASSWORD:?Falta POSTGRES_PASSWORD}@rednexus-postgres:5432/rednexus
+      SEED_DEMO: ${SEED_DEMO:-true}
+    depends_on:
+      rednexus-postgres:
+        condition: service_healthy
+    mem_limit: 384m
+
+  rednexus-api:
+    image: rednexus-api:dokploy
+    build: .
+    restart: unless-stopped
+    environment: *api-env
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/api/health']
+      interval: 10s
+      timeout: 3s
+      start_period: 20s
+      retries: 5
+    depends_on:
+      rednexus-migrate:
+        condition: service_completed_successfully
+      rednexus-redis:
+        condition: service_healthy
+    mem_limit: 384m
+
+  rednexus-worker:
+    image: rednexus-api:dokploy
+    build: .
+    restart: unless-stopped
+    command: ['node', 'dist/worker']
+    environment: *api-env
+    depends_on:
+      rednexus-migrate:
+        condition: service_completed_successfully
+      rednexus-redis:
+        condition: service_healthy
+    mem_limit: 384m
+
+volumes:
+  pgdata:

@@ -21,3 +21,28 @@ jobs:
       - run: npm test
       - run: npm run test:e2e
       - run: npm run build
+
+  # CD: cuando el CI pasa en main, pide a Dokploy que vuelva a desplegar (docker-compose.dokploy.yml).
+  # El secreto DOKPLOY_WEBHOOK_URL es la "Webhook URL" de la pestaña Deployments del proyecto en Dokploy.
+  # El cuerpo imita un push de GitHub porque Dokploy compara la rama del evento con la rama configurada.
+  deploy:
+    needs: build-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: produccion
+    steps:
+      - name: Desplegar en Dokploy
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          if [ -z "$DOKPLOY_WEBHOOK_URL" ]; then
+            echo "::warning::Falta el secreto DOKPLOY_WEBHOOK_URL; no se despliega"
+            exit 0
+          fi
+          payload=$(jq -n --arg ref "$GITHUB_REF" --arg sha "$GITHUB_SHA" --arg msg "$COMMIT_MESSAGE" \
+            '{ref: $ref, after: $sha, head_commit: {id: $sha, message: $msg}}')
+          curl -fsS -X POST "$DOKPLOY_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -H 'X-GitHub-Event: push' \
+            -d "$payload"

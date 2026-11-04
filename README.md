@@ -42,7 +42,10 @@ Si Ollama no responde, el worker no falla: reintenta, empareja por etiquetas y e
 - **Prefijo:** todas las rutas de la API van bajo `/api`.
 - **Swagger:** el contrato de la API está en http://localhost:3000/api/docs. Documenta cada controlador nuevo con `@ApiTags` y `@ApiOperation`, y cada DTO con `@ApiProperty` (ejemplo: `src/modules/health/health.controller.ts`). Así el equipo de frontend sabe qué enviar y qué recibir sin preguntar.
 - **Docker y Kubernetes:** la imagen Docker (`Dockerfile`) se usa para la API, el worker y las migraciones. Su despliegue está en [RedNexus-Platform](https://github.com/juanjosegl/RedNexus-Platform).
-- **Render + Neon (demo gratuita):** `render.yaml` es el Blueprint de Render: la API y el worker corren en un solo contenedor (`scripts/start-all.sh`) en el plan Free, con una Key Value gratuita para BullMQ y PostgreSQL + pgvector en Neon. Render despliega cada push a `main` cuando pasa el CI. El servicio se duerme tras 15 minutos sin tráfico: ábrelo un par de minutos antes de la demo.
+- **Render + Neon (demo gratuita):** `render.yaml` es el Blueprint de Render y despliega todo el proyecto: la API y el worker en un solo contenedor (`scripts/start-all.sh`) en el plan Free, una Key Value gratuita para BullMQ, PostgreSQL + pgvector en Neon y el frontend (`rednexus-web`, repo RedNexus-Frontend) como sitio estático. Render despliega cada push a `main` de cada repo cuando pasa su CI. La API se duerme tras 15 minutos sin tráfico: ábrela un par de minutos antes de la demo.
+  1. En [Neon](https://neon.tech) crea un proyecto (región AWS US East) y copia la cadena de conexión **directa** (sin `-pooler`), con `?sslmode=require`.
+  2. En [Render](https://render.com), **New → Blueprint**, conecta GitHub con acceso a RedNexus-Backend y RedNexus-Frontend, elige este repo y pega la cadena de Neon en `DATABASE_URL`.
+  3. Si la API no queda en `https://rednexus-api.onrender.com`, cambia `VITE_API_URL` de `rednexus-web` en `render.yaml` por la URL real.
 - **Dokploy (servidor del diplomado):** `docker-compose.dokploy.yml` levanta Postgres, Redis, migraciones, API y worker sin publicar puertos. Cada push a `main` con el CI en verde vuelve a desplegar (job `deploy`, secreto `DOKPLOY_WEBHOOK_URL`).
 
 ## Estructura

@@ -25,6 +25,8 @@ model User {
   bio          String? // habilidades en texto libre
   tags         String[] // materias y nivel
   embedding    Unsupported("vector(768)")?
+  // Ley 1581 (arts. 9 y 12): cuándo autorizó el tratamiento de sus datos
+  consentAt    DateTime?
   createdAt    DateTime                    @default(now())
 
   requests     HelpRequest[]
@@ -44,7 +46,7 @@ enum RequestStatus {
 model HelpRequest {
   id        String                      @id @default(uuid())
   authorId  String
-  author    User                        @relation(fields: [authorId], references: [id])
+  author    User                        @relation(fields: [authorId], references: [id], onDelete: Cascade)
   text      String
   audioPath String? // nota de voz original, si la hay
   area      String? // clasificacion del LLM
@@ -67,9 +69,9 @@ enum MatchStatus {
 model Match {
   id          String      @id @default(uuid())
   requestId   String
-  request     HelpRequest @relation(fields: [requestId], references: [id])
+  request     HelpRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   helperId    String
-  helper      User        @relation(fields: [helperId], references: [id])
+  helper      User        @relation(fields: [helperId], references: [id], onDelete: Cascade)
   score       Float
   explanation String? // frase del LLM de por que encaja
   status      MatchStatus @default(PROPOSED)
@@ -81,11 +83,11 @@ model Match {
 model Rating {
   id        String      @id @default(uuid())
   requestId String      @unique // una calificacion por solicitud
-  request   HelpRequest @relation(fields: [requestId], references: [id])
+  request   HelpRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
   authorId  String
-  author    User        @relation("RatingAuthor", fields: [authorId], references: [id])
+  author    User        @relation("RatingAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   helperId  String
-  helper    User        @relation("RatingHelper", fields: [helperId], references: [id])
+  helper    User        @relation("RatingHelper", fields: [helperId], references: [id], onDelete: Cascade)
   stars     Int
   createdAt DateTime    @default(now())
 }
@@ -109,7 +111,7 @@ model Pqrs {
   id          String     @id @default(uuid())
   number      Int        @unique @default(autoincrement()) // radicado legible: PQRS-000001
   authorId    String
-  author      User       @relation(fields: [authorId], references: [id])
+  author      User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
   type        PqrsType
   subject     String
   description String

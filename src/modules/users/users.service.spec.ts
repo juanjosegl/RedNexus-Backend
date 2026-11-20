@@ -16,6 +16,7 @@ function setup(avg: number | null = null) {
     user: {
       findUnique: vi.fn().mockResolvedValue(user),
       update: vi.fn(),
+      deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     rating: {
       aggregate: vi.fn().mockResolvedValue({ _avg: { stars: avg } }),
@@ -59,5 +60,36 @@ describe('UsersService', () => {
     await service.publicProfile('u1');
     const { select } = prisma.user.findUnique.mock.calls[0][0];
     expect(select).not.toHaveProperty('email');
+  });
+
+  it('exporta todos mis datos sin contraseña ni embedding', async () => {
+    const { prisma, service } = setup();
+    prisma.user.findUnique.mockResolvedValue({
+      ...user,
+      consentAt: new Date('2026-11-01'),
+      createdAt: new Date('2026-11-01'),
+      requests: [{ id: 'r1', text: 'No entiendo los joins' }],
+      matches: [],
+      ratingsGiven: [],
+      ratingsGot: [{ requestId: 'r9', stars: 5 }],
+      pqrs: [],
+    });
+    const data = await service.exportData('u1');
+    expect(data.profile).toMatchObject({ email: user.email });
+    expect(data.helpRequests).toHaveLength(1);
+    expect(data.ratingsReceived).toEqual([{ requestId: 'r9', stars: 5 }]);
+    const select = prisma.user.findUnique.mock.calls[0][0].select;
+    expect(select).not.toHaveProperty('passwordHash');
+    expect(select).not.toHaveProperty('embedding');
+  });
+
+  it('elimina la cuenta (la base borra en cascada lo asociado)', async () => {
+    const { prisma, service } = setup();
+    await service.deleteAccount('u1');
+    expect(prisma.user.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+    });
+    prisma.user.deleteMany.mockResolvedValue({ count: 0 });
+    await expect(service.deleteAccount('u1')).rejects.toThrow('no existe');
   });
 });

@@ -1,4 +1,6 @@
-// Perfiles ficticios para la demo (Ley 1581)
+// Perfiles ficticios para la demo (Ley 1581): ningún dato es de una persona real.
+// Generado por RedNexus-Platform/ml/scripts/export_seed.py desde ml/data/profiles.json (IA-06).
+// No editar a mano: cambia el dataset y vuelve a correr el script.
 
 export interface SeedProfile {
   email: string;
@@ -127,6 +129,186 @@ export const profiles: SeedProfile[] = [
     name: 'Tomás Guerrero',
     bio: 'Seguridad informática: OWASP Top 10, inyección SQL, XSS, cifrado y buenas prácticas de contraseñas.',
     tags: ['seguridad', 'owasp', 'cifrado'],
+  },
+  {
+    email: 'julian.demo@rednexus.dev',
+    name: 'Julián Ceballos',
+    bio: 'Consultas SQL desde lo básico: SELECT, filtros con WHERE, GROUP BY, HAVING y subconsultas. Monitor de Bases de Datos.',
+    tags: ['bases-de-datos', 'sql', 'basico'],
+  },
+  {
+    email: 'natalia.demo@rednexus.dev',
+    name: 'Natalia Quintero',
+    bio: 'Modelado de datos: diagramas entidad-relación, cardinalidades y normalización hasta tercera forma normal.',
+    tags: ['bases-de-datos', 'modelado', 'normalizacion'],
+  },
+  {
+    email: 'esteban.demo@rednexus.dev',
+    name: 'Esteban Muñoz',
+    bio: 'MySQL en producción: procedimientos almacenados, triggers, vistas, usuarios y copias de seguridad.',
+    tags: ['bases-de-datos', 'mysql', 'administracion'],
+  },
+  {
+    email: 'gabriela.demo@rednexus.dev',
+    name: 'Gabriela Ospina',
+    bio: 'Python intermedio: clases y objetos en Python, manejo de excepciones, lectura de archivos, módulos y entornos virtuales con venv.',
+    tags: ['programacion', 'python', 'intermedio'],
+  },
+  {
+    email: 'kevin.demo@rednexus.dev',
+    name: 'Kevin Anacona',
+    bio: 'C y C++: punteros, memoria dinámica con malloc y new, structs, compilación con gcc y make.',
+    tags: ['programacion', 'c', 'cpp'],
+  },
+  {
+    email: 'luisa.demo@rednexus.dev',
+    name: 'Luisa Fernanda Rojas',
+    bio: 'Maquetación web: HTML semántico, CSS, Flexbox, Grid, diseño responsive y accesibilidad.',
+    tags: ['programacion', 'web', 'css', 'frontend'],
+  },
+  {
+    email: 'cristian.demo@rednexus.dev',
+    name: 'Cristian Yalanda',
+    bio: 'Desarrollo móvil Android con Kotlin y Jetpack Compose: pantallas, listas, navegación y ciclo de vida.',
+    tags: ['programacion', 'kotlin', 'android', 'movil'],
+  },
+  {
+    email: 'manuela.demo@rednexus.dev',
+    name: 'Manuela Arboleda',
+    bio: 'JavaScript asíncrono: callbacks, promesas, async/await, fetch y el event loop del navegador.',
+    tags: ['programacion', 'javascript', 'asincronia'],
+  },
+  {
+    email: 'jhon.demo@rednexus.dev',
+    name: 'Jhon Fredy Palechor',
+    bio: 'Backend en Java con Spring Boot: controladores REST, JPA, Hibernate y conexión a bases de datos.',
+    tags: ['programacion', 'java', 'spring-boot', 'backend'],
+  },
+  {
+    email: 'diana.demo@rednexus.dev',
+    name: 'Diana Marcela Solarte',
+    bio: 'Ecuaciones diferenciales ordinarias: separables, lineales, de segundo orden y transformada de Laplace.',
+    tags: ['matematicas', 'ecuaciones-diferenciales', 'laplace'],
+  },
+  {
+    email: 'ricardo.demo@rednexus.dev',
+    name: 'Ricardo Benavides',
+    bio: 'Cálculo multivariable: derivadas parciales, gradiente, integrales dobles y triples, coordenadas polares y esféricas.',
+    tags: ['matematicas', 'calculo-vectorial', 'multivariable'],
+  },
+  {
+    email: 'valeria.demo@rednexus.dev',
+    name: 'Valeria Muñoz',
+    bio: 'Precálculo y álgebra básica: factorización, fracciones algebraicas, funciones, trigonometría y logaritmos.',
+    tags: ['matematicas', 'precalculo', 'algebra', 'basico'],
+  },
+  {
+    email: 'carolina.demo@rednexus.dev',
+    name: 'Carolina Idrobo',
+    bio: 'Probabilidad: técnicas de conteo, permutaciones, combinaciones, teorema de Bayes y variables aleatorias.',
+    tags: ['matematicas', 'probabilidad', 'conteo'],
+  },
+  {
+    email: 'andrea.demo@rednexus.dev',
+    name: 'Andrea Collazos',
+    bio: 'Redes conmutadas e inalámbricas: VLAN, enrutamiento entre VLAN, firewalls, WiFi y prácticas en Packet Tracer.',
+    tags: ['redes', 'vlan', 'packet-tracer', 'firewall'],
+  },
+  {
+    email: 'oscar.demo@rednexus.dev',
+    name: 'Óscar Mosquera',
+    bio: 'Administración de Linux: terminal, scripts en bash, permisos, procesos, ssh, cron y firewall con ufw.',
+    tags: ['cloud-devops', 'linux', 'bash'],
+  },
+  {
+    email: 'melissa.demo@rednexus.dev',
+    name: 'Melissa Burbano',
+    bio: 'Nube en AWS: EC2, S3, IAM, redes VPC e infraestructura como código con Terraform.',
+    tags: ['cloud-devops', 'aws', 'terraform'],
+  },
+  {
+    email: 'brayan.demo@rednexus.dev',
+    name: 'Brayan Ijají',
+    bio: 'Integración y entrega continua: pipelines en GitHub Actions y Jenkins, pruebas automáticas y despliegues.',
+    tags: ['cloud-devops', 'ci-cd', 'github-actions', 'jenkins'],
+  },
+  {
+    email: 'juliana.demo@rednexus.dev',
+    name: 'Juliana Cerón',
+    bio: 'Inglés conversacional: speaking, pronunciación, listening y preparación de entrevistas de trabajo en inglés.',
+    tags: ['ingles', 'speaking', 'pronunciacion'],
+  },
+  {
+    email: 'alexander.demo@rednexus.dev',
+    name: 'Alexander Lasso',
+    bio: 'Inglés técnico para ingeniería: leer documentación, artículos científicos y vocabulario de software en inglés.',
+    tags: ['ingles', 'ingles-tecnico', 'lectura'],
+  },
+  {
+    email: 'lorena.demo@rednexus.dev',
+    name: 'Lorena Calambás',
+    bio: 'Física de electricidad y magnetismo: ley de Coulomb, campo eléctrico, ley de Gauss, ley de Ohm, inducción y ley de Faraday.',
+    tags: ['fisica', 'electromagnetismo', 'electricidad'],
+  },
+  {
+    email: 'hector.demo@rednexus.dev',
+    name: 'Héctor Mueses',
+    bio: 'Física de ondas, óptica y termodinámica: interferencia, calor, gases ideales y leyes de la termodinámica.',
+    tags: ['fisica', 'ondas', 'termodinamica'],
+  },
+  {
+    email: 'ximena.demo@rednexus.dev',
+    name: 'Ximena Vidal',
+    bio: 'Química general: estequiometría, balanceo de ecuaciones, óxido-reducción, reactivo límite y tabla periódica.',
+    tags: ['quimica', 'estequiometria'],
+  },
+  {
+    email: 'mauricio.demo@rednexus.dev',
+    name: 'Mauricio Dorado',
+    bio: 'Electrónica digital: compuertas lógicas, álgebra de Boole, mapas de Karnaugh, flip-flops y proyectos con Arduino.',
+    tags: ['electronica', 'digital', 'arduino'],
+  },
+  {
+    email: 'veronica.demo@rednexus.dev',
+    name: 'Verónica Paredes',
+    bio: 'Sistemas operativos: procesos e hilos, planificación de CPU, concurrencia, semáforos, interbloqueos y memoria virtual.',
+    tags: ['sistemas-operativos', 'concurrencia', 'hilos'],
+  },
+  {
+    email: 'fernando.demo@rednexus.dev',
+    name: 'Fernando Ordóñez',
+    bio: 'Arquitectura y diseño de software: principios SOLID, código limpio, patrones de diseño, MVC y microservicios.',
+    tags: ['ingenieria-de-software', 'arquitectura', 'solid', 'patrones'],
+  },
+  {
+    email: 'lina.demo@rednexus.dev',
+    name: 'Lina Marcela Gaviria',
+    bio: 'Pruebas de software: pruebas unitarias, mocks, TDD, pruebas de integración con Jest y JUnit.',
+    tags: ['ingenieria-de-software', 'testing', 'tdd'],
+  },
+  {
+    email: 'pablo.demo@rednexus.dev',
+    name: 'Pablo Andrés Chávez',
+    bio: 'Deep learning con PyTorch y TensorFlow: redes neuronales, redes convolucionales y visión por computador.',
+    tags: ['ia', 'deep-learning', 'vision'],
+  },
+  {
+    email: 'adriana.demo@rednexus.dev',
+    name: 'Adriana Montenegro',
+    bio: 'Procesamiento de lenguaje natural y LLM: embeddings, búsqueda semántica, RAG, prompts y Hugging Face.',
+    tags: ['ia', 'nlp', 'llm', 'rag'],
+  },
+  {
+    email: 'ivan.demo@rednexus.dev',
+    name: 'Iván Darío Pino',
+    bio: 'Hacking ético: pentesting, Kali Linux, escaneo con nmap, análisis de vulnerabilidades y retos CTF.',
+    tags: ['seguridad', 'pentesting', 'kali'],
+  },
+  {
+    email: 'monica.demo@rednexus.dev',
+    name: 'Mónica Sandoval',
+    bio: 'Redacción académica y metodología de investigación: normas APA 7, anteproyectos, planteamiento del problema y objetivos.',
+    tags: ['investigacion', 'apa', 'redaccion'],
   },
   // sin habilidades: solo pide ayuda
   {

@@ -1,13 +1,16 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -39,6 +42,29 @@ export class UsersController {
   @ApiOkResponse({ type: ProfileDto })
   update(@CurrentUser() user: JwtPayload, @Body() dto: UpdateProfileDto) {
     return this.users.update(user.sub, dto);
+  }
+
+  @Get('me/export')
+  @ApiOperation({
+    summary:
+      'Descarga todos mis datos en JSON (derecho de acceso, Ley 1581 art. 8)',
+  })
+  @ApiOkResponse({
+    description: 'Perfil, solicitudes, candidaturas, calificaciones y PQRS',
+  })
+  exportData(@CurrentUser() user: JwtPayload) {
+    return this.users.exportData(user.sub);
+  }
+
+  @Delete('me')
+  @HttpCode(204)
+  @ApiOperation({
+    summary:
+      'Elimina mi cuenta y todo lo asociado (derecho de supresión, Ley 1581 art. 8)',
+  })
+  @ApiNoContentResponse()
+  deleteAccount(@CurrentUser() user: JwtPayload) {
+    return this.users.deleteAccount(user.sub);
   }
 
   @Get(':id')

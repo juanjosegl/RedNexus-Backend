@@ -1,4 +1,4 @@
-import { parseClassification } from './ollama.provider.js';
+import { cleanExplanation, parseClassification } from './ollama.provider.js';
 
 describe('parseClassification', () => {
   it('acepta el JSON esperado y normaliza los temas', () => {
@@ -23,5 +23,15 @@ describe('parseClassification', () => {
   it('rechaza lo que no es JSON o le faltan campos', () => {
     expect(parseClassification('Claro, aquí está la clasificación')).toBeNull();
     expect(parseClassification('{"area":"redes"}')).toBeNull();
+  });
+});
+
+describe('cleanExplanation', () => {
+  it('quita las etiquetas del prompt que el modelo a veces repite', () => {
+    expect(
+      cleanExplanation(
+        '"Julián puede ayudarte con subconsultas en SQL. </perfil>"\n',
+      ),
+    ).toBe('Julián puede ayudarte con subconsultas en SQL.');
   });
 });

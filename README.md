@@ -33,11 +33,30 @@ En otra terminal, el worker de IA: `npm run start:worker:dev`. Al arrancar calcu
 | `AI_PROVIDER` | Qué hace | Cuándo usarlo |
 | --- | --- | --- |
 | `mock` (por defecto) | Embeddings por palabras en común, clasificación por palabras clave y explicación con plantilla. Sin red | Programar, CI, y cuando el nodo de IA está apagado |
-| `ollama` | `nomic-embed-text` para embeddings y `llama3.2:3b` para clasificar y explicar | Demo y experimentos |
+| `ollama` | `paraphrase-multilingual` para embeddings y `qwen2.5:3b` para clasificar y explicar | Demo y experimentos |
 
-Para pasar a Ollama: `ollama pull nomic-embed-text && ollama pull llama3.2:3b`, pon `AI_PROVIDER=ollama` en `.env`, vuelve a correr `npm run db:seed` (borra los embeddings del mock, que no son comparables con los de Ollama) y reinicia el worker.
+Para pasar a Ollama: `ollama pull paraphrase-multilingual && ollama pull qwen2.5:3b`, pon `AI_PROVIDER=ollama` en `.env`, vuelve a correr `npm run db:seed` (borra los embeddings del mock, que no son comparables con los de Ollama) y reinicia el worker.
+
+**Configuración del emparejamiento (IA-07).** Los modelos, el peso entre similitud y calificación, el umbral, la búsqueda híbrida (embedding + coincidencia de palabras) y el uso de la clasificación en la consulta se eligieron con experimentos en MLflow sobre un dataset sintético de 100 solicitudes ([RedNexus-Platform/ml](https://github.com/juanjosegl/RedNexus-Platform/tree/developer/ml)). Los valores por defecto están en `src/modules/matching/matching-config.ts` y se cambian con las variables `MATCH_*` de `.env.example`; el log del worker dice qué versión de `rednexus-matching` está usando.
 
 Si Ollama no responde, el worker no falla: reintenta, empareja por etiquetas y explica con la plantilla (degradación elegante). El log del worker dice qué estrategia usó y cuánto tardó.
+
+### Notas de voz (whisper.cpp)
+
+`POST /api/help-requests/voice` recibe la nota en el campo `audio` (`multipart/form-data`; webm, ogg, mp3, wav o m4a, hasta 10 MB). La solicitud queda en `PENDING` con el texto `(nota de voz en transcripción)`, el worker la transcribe y luego sigue el mismo camino que una solicitud por texto (clasificar, embedding y top 3). El audio viaja en el trabajo de la cola y **no se guarda**: se descarta al transcribirlo (minimización de datos, Ley 1581), y por eso la API y el worker no necesitan un volumen compartido.
+
+| `TRANSCRIBE_PROVIDER` | Qué hace |
+| --- | --- |
+| `mock` (por defecto) | Devuelve siempre la misma duda de SQL. Sirve para programar, CI y la demo sin nodo de IA |
+| `whisper` | Llama al servidor de [whisper.cpp](https://github.com/ggml-org/whisper.cpp) en `WHISPER_URL` |
+
+En el nodo de IA (Mac): `brew install whisper-cpp ffmpeg`, descarga el modelo `ggml-base.bin` (ver la [lista de modelos](https://huggingface.co/ggerganov/whisper.cpp)) y deja corriendo:
+
+```bash
+whisper-server -m ggml-base.bin --convert --language es --host 0.0.0.0 --port 8178
+```
+
+`--convert` usa ffmpeg para aceptar el webm que graba el navegador. Si la nota no tiene texto útil (silencio o ruido), la solicitud se cierra con un mensaje que le pide al autor escribir la duda.
 
 - **Prefijo:** todas las rutas de la API van bajo `/api`.
 - **Swagger:** el contrato de la API está en http://localhost:3000/api/docs. Documenta cada controlador nuevo con `@ApiTags` y `@ApiOperation`, y cada DTO con `@ApiProperty` (ejemplo: `src/modules/health/health.controller.ts`). Así el equipo de frontend sabe qué enviar y qué recibir sin preguntar.

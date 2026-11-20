@@ -4,6 +4,12 @@ import { MatchStatus, RequestStatus } from '../../../generated/prisma/enums.js';
 export class IncomingAuthorDto {
   @ApiProperty({ example: 'Estudiante Demo' })
   name: string;
+
+  @ApiPropertyOptional({
+    example: 'estudiante.demo@rednexus.dev',
+    description: 'Solo aparece cuando acepté ayudar',
+  })
+  email?: string;
 }
 
 export class IncomingRequestDto {

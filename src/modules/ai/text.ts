@@ -43,6 +43,14 @@ export function matchingWords(stems: string[], text: string): string[] {
   return words;
 }
 
+// Fracción de las palabras (sin repetir) de la consulta que aparecen en el texto del perfil.
+// Es la "coincidencia de palabras" del respaldo por etiquetas y de la búsqueda híbrida.
+export function lexicalSimilarity(query: string, profile: string): number {
+  const wanted = [...new Set(tokenize(query))];
+  if (wanted.length === 0) return 0;
+  return overlap(wanted, tokenize(profile)).length / wanted.length;
+}
+
 export function overlap(a: string[], b: string[]): string[] {
   const set = new Set(b);
   return [...new Set(a.filter((w) => set.has(w)))];

@@ -77,4 +77,25 @@ describe('MatchesService', () => {
       data: { status: 'REJECTED' },
     });
   });
+
+  it('la bandeja solo muestra el email del autor si acepté', async () => {
+    const { prisma, service } = setup(null);
+    const row = (id: string, status: string) => ({
+      id,
+      status,
+      request: {
+        id: `r-${id}`,
+        author: { name: 'Laura', email: 'laura@rednexus.dev' },
+      },
+    });
+    prisma.match.findMany = vi
+      .fn()
+      .mockResolvedValue([row('m1', 'ACCEPTED'), row('m2', 'PROPOSED')]);
+    const [accepted, proposedMatch] = await service.incoming('ana');
+    expect(accepted.request.author).toEqual({
+      name: 'Laura',
+      email: 'laura@rednexus.dev',
+    });
+    expect(proposedMatch.request.author).toEqual({ name: 'Laura' });
+  });
 });

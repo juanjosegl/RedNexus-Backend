@@ -10,8 +10,8 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 export class MatchesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  incoming(helperId: string) {
-    return this.prisma.match.findMany({
+  async incoming(helperId: string) {
+    const matches = await this.prisma.match.findMany({
       where: { helperId },
       orderBy: { createdAt: 'desc' },
       select: {
@@ -29,11 +29,19 @@ export class MatchesService {
             level: true,
             status: true,
             createdAt: true,
-            author: { select: { name: true } },
+            author: { select: { name: true, email: true } },
           },
         },
       },
     });
+    // el email del autor solo se ve si yo acepté (igual que en el detalle de la solicitud)
+    return matches.map(({ request: { author, ...request }, ...m }) => ({
+      ...m,
+      request: {
+        ...request,
+        author: m.status === 'ACCEPTED' ? author : { name: author.name },
+      },
+    }));
   }
 
   async accept(helperId: string, id: string) {

@@ -15,7 +15,13 @@ const prisma = new PrismaClient({
 async function main() {
   const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
   for (const p of profiles) {
-    const data = { name: p.name, bio: p.bio, tags: p.tags, passwordHash };
+    const data = {
+      name: p.name,
+      bio: p.bio,
+      tags: p.tags,
+      passwordHash,
+      consentAt: new Date(),
+    };
     await prisma.user.upsert({
       where: { email: p.email },
       update: data,

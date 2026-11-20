@@ -16,6 +16,13 @@ export default () => ({
     embedModel: process.env.OLLAMA_EMBED_MODEL ?? 'nomic-embed-text',
     timeoutMs: parseInt(process.env.OLLAMA_TIMEOUT_MS ?? '20000', 10),
   },
+  // Notas de voz (BE-04, IA-05). mock | whisper
+  transcription: {
+    provider: process.env.TRANSCRIBE_PROVIDER ?? 'mock',
+    whisperUrl: process.env.WHISPER_URL ?? 'http://localhost:8178',
+    language: process.env.WHISPER_LANGUAGE ?? 'es',
+    timeoutMs: parseInt(process.env.WHISPER_TIMEOUT_MS ?? '120000', 10),
+  },
   // Asistente de soporte (RAG en Open WebUI). Las variables se documentan en BE-09.
   support: {
     // mock | openwebui

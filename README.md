@@ -58,6 +58,29 @@ whisper-server -m ggml-base.bin --convert --language es --host 0.0.0.0 --port 81
 
 `--convert` usa ffmpeg para aceptar el webm que graba el navegador. Si la nota no tiene texto útil (silencio o ruido), la solicitud se cierra con un mensaje que le pide al autor escribir la duda.
 
+### Asistente de soporte (RAG)
+
+`POST /api/support/chat` recibe `{ message, history? }` (hasta 10 turnos anteriores) y responde `{ answer, sources, provider, latencyMs }`. Lo usa la página `/ayuda` del frontend.
+
+| Variable | Valor por defecto | Qué es |
+| --- | --- | --- |
+| `SUPPORT_PROVIDER` | `mock` | `mock` (respuestas por palabra clave, sin red) u `openwebui` |
+| `OPENWEBUI_URL` | `http://localhost:3001` | URL de Open WebUI, sin `/api` |
+| `OPENWEBUI_API_KEY` | (vacío) | API key de Open WebUI. **Nunca** se sube a GitHub |
+| `SUPPORT_MODEL` | `asistente-rednexus` | Modelo personalizado de Open WebUI |
+| `SUPPORT_TIMEOUT_MS` | `60000` | Tiempo máximo de espera de la respuesta |
+
+Para conectarlo a Open WebUI:
+
+1. Levanta Open WebUI y crea el modelo `asistente-rednexus` siguiendo [RedNexus-Platform/asistente-rag](https://github.com/juanjosegl/RedNexus-Platform/tree/developer/asistente-rag#levantarlo) (`docker compose up -d` y `python scripts/setup_openwebui.py`).
+2. En Open WebUI, **Settings → Account → API keys**, crea una API key.
+3. En el `.env` del backend pon `SUPPORT_PROVIDER=openwebui` y `OPENWEBUI_API_KEY=<tu key>`. Si Open WebUI no está en `http://localhost:3001`, cambia `OPENWEBUI_URL`.
+4. Reinicia la API (`npm run start:dev`). El log dice `Asistente de soporte: openwebui`.
+
+Si Open WebUI no responde o tarda más de `SUPPORT_TIMEOUT_MS`, la API responde 503 con un mensaje amable y el frontend lo muestra en el chat.
+
+### API y despliegue
+
 - **Prefijo:** todas las rutas de la API van bajo `/api`.
 - **Swagger:** el contrato de la API está en http://localhost:3000/api/docs. Documenta cada controlador nuevo con `@ApiTags` y `@ApiOperation`, y cada DTO con `@ApiProperty` (ejemplo: `src/modules/health/health.controller.ts`). Así el equipo de frontend sabe qué enviar y qué recibir sin preguntar.
 - **Docker y Kubernetes:** la imagen Docker (`Dockerfile`) se usa para la API, el worker y las migraciones. Su despliegue está en [RedNexus-Platform](https://github.com/juanjosegl/RedNexus-Platform).

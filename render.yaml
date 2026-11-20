@@ -30,6 +30,9 @@ services:
         generateValue: true
       - key: AI_PROVIDER
         value: mock
+      # Asistente de soporte: sin Open WebUI en Render, responde el mock por palabra clave
+      - key: SUPPORT_PROVIDER
+        value: mock
       # Perfiles sintéticos de demo (upsert); nunca datos reales (Ley 1581)
       - key: SEED_DEMO
         value: 'true'

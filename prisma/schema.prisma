@@ -31,6 +31,7 @@ model User {
   matches      Match[]
   ratingsGiven Rating[]      @relation("RatingAuthor")
   ratingsGot   Rating[]      @relation("RatingHelper")
+  pqrs         Pqrs[]
 }
 
 enum RequestStatus {
@@ -87,4 +88,35 @@ model Rating {
   helper    User        @relation("RatingHelper", fields: [helperId], references: [id])
   stars     Int
   createdAt DateTime    @default(now())
+}
+
+// PQRS: peticiones, quejas, reclamos y sugerencias sobre la plataforma.
+// El asistente de soporte remite aqui lo que no puede resolver.
+enum PqrsType {
+  PETICION
+  QUEJA
+  RECLAMO
+  SUGERENCIA
+}
+
+enum PqrsStatus {
+  RADICADA
+  EN_REVISION
+  RESPONDIDA
+}
+
+model Pqrs {
+  id          String     @id @default(uuid())
+  number      Int        @unique @default(autoincrement()) // radicado legible: PQRS-000001
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+  type        PqrsType
+  subject     String
+  description String
+  status      PqrsStatus @default(RADICADA)
+  response    String?
+  respondedAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([authorId, createdAt])
 }

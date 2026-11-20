@@ -1,3 +1,5 @@
+import { matchingConfigFromEnv } from '../modules/matching/matching-config.js';
+
 // Variables de entorno agrupadas por tema. Se leen desde .env (ver .env.example).
 export default () => ({
   port: parseInt(process.env.PORT ?? '3000', 10),
@@ -12,8 +14,9 @@ export default () => ({
   },
   ollama: {
     url: process.env.OLLAMA_URL ?? 'http://localhost:11434',
-    llmModel: process.env.OLLAMA_LLM_MODEL ?? 'llama3.2:3b',
-    embedModel: process.env.OLLAMA_EMBED_MODEL ?? 'nomic-embed-text',
+    // IA-07: qwen2.5:3b y paraphrase-multilingual (768 dimensiones, mejor en español que nomic)
+    llmModel: process.env.OLLAMA_LLM_MODEL ?? 'qwen2.5:3b',
+    embedModel: process.env.OLLAMA_EMBED_MODEL ?? 'paraphrase-multilingual',
     timeoutMs: parseInt(process.env.OLLAMA_TIMEOUT_MS ?? '20000', 10),
   },
   // Notas de voz (BE-04, IA-05). mock | whisper
@@ -32,5 +35,7 @@ export default () => ({
     model: process.env.SUPPORT_MODEL ?? 'asistente-rednexus',
     timeoutMs: parseInt(process.env.SUPPORT_TIMEOUT_MS ?? '60000', 10),
   },
+  // Configuración del emparejamiento elegida con MLflow (IA-07)
+  matching: matchingConfigFromEnv(),
   jwtSecret: process.env.JWT_SECRET,
 });

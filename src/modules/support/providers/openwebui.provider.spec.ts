@@ -1,61 +1,89 @@
 import {
+  documentNames,
   OpenWebUiSupportProvider,
-  parseCompletion,
+  parseStream,
 } from './openwebui.provider.js';
 
-describe('parseCompletion', () => {
-  it('toma la respuesta y los documentos usados sin repetir', () => {
+function sse(...events: unknown[]) {
+  return (
+    events.map((e) => `data: ${JSON.stringify(e)}`).join('\n\n') +
+    '\n\ndata: [DONE]\n\n'
+  );
+}
+
+const sourcesEvent = {
+  sources: [
+    {
+      source: { name: 'Base RedNexus' },
+      metadata: [
+        { name: 'calificaciones.md' },
+        { source: 'calificaciones.md' },
+      ],
+    },
+  ],
+};
+
+describe('parseStream', () => {
+  it('une los fragmentos y toma los documentos usados', () => {
     expect(
-      parseCompletion({
-        choices: [{ message: { content: '  Puedes calificar de 1 a 5.  ' } }],
-        sources: [
-          {
-            source: { name: 'Base RedNexus' },
-            metadata: [
-              { name: 'calificaciones.md' },
-              { source: 'calificaciones.md' },
-            ],
-          },
-        ],
-      }),
+      parseStream(
+        sse(
+          sourcesEvent,
+          { choices: [{ delta: { content: '  Puedes calificar ' } }] },
+          { choices: [{ delta: { content: 'de 1 a 5.  ' } }] },
+        ),
+      ),
     ).toEqual({
       answer: 'Puedes calificar de 1 a 5.',
-      sources: ['calificaciones.md', 'Base RedNexus'],
+      sources: ['calificaciones.md'],
     });
   });
 
-  it('acepta respuestas sin fuentes', () => {
+  it('acepta respuestas sin fuentes e ignora líneas que no son datos', () => {
     expect(
-      parseCompletion({ choices: [{ message: { content: 'Hola' } }] }),
+      parseStream(
+        ': keep-alive\n\n' + sse({ choices: [{ delta: { content: 'Hola' } }] }),
+      ),
     ).toEqual({ answer: 'Hola', sources: [] });
   });
 
-  it('falla si no hay respuesta', () => {
-    expect(() => parseCompletion({ choices: [] })).toThrow();
-    expect(() => parseCompletion(null)).toThrow();
+  it('falla si no hay respuesta o si Open WebUI manda un error', () => {
+    expect(() => parseStream(sse(sourcesEvent))).toThrow();
+    expect(() => parseStream(sse({ error: { detail: 'sin modelo' } }))).toThrow(
+      'sin modelo',
+    );
+  });
+});
+
+describe('documentNames', () => {
+  it('usa el nombre de la fuente si no hay metadatos', () => {
+    expect(documentNames([{ source: { name: 'pqrs.md' } }])).toEqual([
+      'pqrs.md',
+    ]);
   });
 });
 
 describe('OpenWebUiSupportProvider', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('llama a /api/chat/completions con el modelo y la API key', async () => {
+  const options = {
+    url: 'http://owui:8080',
+    apiKey: 'sk-prueba',
+    model: 'asistente-rednexus',
+    timeoutMs: 1000,
+  };
+
+  it('llama a /api/chat/completions con stream, el modelo y la API key', async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValue(
-        new Response(
-          JSON.stringify({ choices: [{ message: { content: 'Respuesta' } }] }),
-        ),
+        new Response(sse({ choices: [{ delta: { content: 'Respuesta' } }] })),
       );
     vi.stubGlobal('fetch', fetchMock);
-    const provider = new OpenWebUiSupportProvider({
-      url: 'http://owui:8080',
-      apiKey: 'sk-prueba',
-      model: 'asistente-rednexus',
-      timeoutMs: 1000,
-    });
 
-    const reply = await provider.ask([{ role: 'user', content: 'Hola' }]);
+    const reply = await new OpenWebUiSupportProvider(options).ask([
+      { role: 'user', content: 'Hola' },
+    ]);
 
     expect(reply.answer).toBe('Respuesta');
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -65,9 +93,29 @@ describe('OpenWebUiSupportProvider', () => {
     );
     expect(JSON.parse(init.body as string)).toMatchObject({
       model: 'asistente-rednexus',
-      stream: false,
+      stream: true,
       messages: [{ role: 'user', content: 'Hola' }],
     });
+  });
+
+  it('si responde "Model not found" refresca los modelos y reintenta una vez', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response('{"detail":"Model not found"}', { status: 400 }),
+      )
+      .mockResolvedValueOnce(new Response('{"data":[]}'))
+      .mockResolvedValueOnce(
+        new Response(sse({ choices: [{ delta: { content: 'Ya' } }] })),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const reply = await new OpenWebUiSupportProvider(options).ask([
+      { role: 'user', content: 'Hola' },
+    ]);
+
+    expect(reply.answer).toBe('Ya');
+    expect(fetchMock.mock.calls[1][0]).toBe('http://owui:8080/api/models');
   });
 
   it('lanza error si Open WebUI no responde 200', async () => {
@@ -75,15 +123,11 @@ describe('OpenWebUiSupportProvider', () => {
       'fetch',
       vi.fn().mockResolvedValue(new Response('no autorizado', { status: 401 })),
     );
-    const provider = new OpenWebUiSupportProvider({
-      url: 'http://owui:8080',
-      apiKey: 'mala',
-      model: 'asistente-rednexus',
-      timeoutMs: 1000,
-    });
 
     await expect(
-      provider.ask([{ role: 'user', content: 'Hola' }]),
+      new OpenWebUiSupportProvider({ ...options, apiKey: 'mala' }).ask([
+        { role: 'user', content: 'Hola' },
+      ]),
     ).rejects.toThrow('401');
   });
 });

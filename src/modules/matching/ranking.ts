@@ -1,12 +1,13 @@
+import { DEFAULT_MATCHING_CONFIG } from './matching-config.js';
+
 export const TOP_K = 3;
 export const CANDIDATE_POOL = 10;
 
-// TODO: ajustar pesos con MLflow (IA-07)
-export const SIMILARITY_WEIGHT = 0.8;
+// Valores por defecto: los de la configuración ganadora de IA-07 (matching-config.ts)
+export const SIMILARITY_WEIGHT = DEFAULT_MATCHING_CONFIG.similarityWeight;
+export const MIN_SIMILARITY = DEFAULT_MATCHING_CONFIG.minSimilarity;
 // sin calificaciones cuenta como 3/5
 export const NEUTRAL_RATING = 3;
-// calibrado con el mock, revisar con nomic-embed-text
-export const MIN_SIMILARITY = 0.15;
 
 export interface Candidate {
   id: string;
@@ -17,17 +18,45 @@ export interface Candidate {
   avgRating: number | null; // 1 a 5
 }
 
-export function score(candidate: Candidate): number {
-  const rating = (candidate.avgRating ?? NEUTRAL_RATING) / 5;
-  return (
-    SIMILARITY_WEIGHT * candidate.similarity + (1 - SIMILARITY_WEIGHT) * rating
-  );
+export interface RankingOptions {
+  similarityWeight: number;
+  minSimilarity: number;
 }
 
-export function rank(candidates: Candidate[], authorId: string, k = TOP_K) {
+const DEFAULT_OPTIONS: RankingOptions = {
+  similarityWeight: SIMILARITY_WEIGHT,
+  minSimilarity: MIN_SIMILARITY,
+};
+
+export function score(
+  candidate: Candidate,
+  weight = SIMILARITY_WEIGHT,
+): number {
+  const rating = (candidate.avgRating ?? NEUTRAL_RATING) / 5;
+  return weight * candidate.similarity + (1 - weight) * rating;
+}
+
+export function rank(
+  candidates: Candidate[],
+  authorId: string,
+  k = TOP_K,
+  options: RankingOptions = DEFAULT_OPTIONS,
+) {
   return candidates
-    .filter((c) => c.id !== authorId && c.similarity >= MIN_SIMILARITY)
-    .map((c) => ({ ...c, score: Number(score(c).toFixed(4)) }))
+    .filter((c) => c.id !== authorId && c.similarity >= options.minSimilarity)
+    .map((c) => ({
+      ...c,
+      score: Number(score(c, options.similarityWeight).toFixed(4)),
+    }))
     .sort((a, b) => b.score - a.score)
     .slice(0, k);
+}
+
+// Búsqueda híbrida (IA-07): mezcla la similitud del embedding con la coincidencia de palabras
+export function hybridSimilarity(
+  semantic: number,
+  lexical: number,
+  alpha: number,
+): number {
+  return alpha * semantic + (1 - alpha) * lexical;
 }

@@ -31,6 +31,7 @@ export class AuthService {
         email: dto.email,
         name: dto.name,
         passwordHash: await bcrypt.hash(dto.password, BCRYPT_ROUNDS),
+        consentAt: new Date(),
       },
       select: userSelect,
     });

@@ -41,6 +41,23 @@ Para pasar a Ollama: `ollama pull paraphrase-multilingual && ollama pull qwen2.5
 
 Si Ollama no responde, el worker no falla: reintenta, empareja por etiquetas y explica con la plantilla (degradación elegante). El log del worker dice qué estrategia usó y cuánto tardó.
 
+### Notas de voz (whisper.cpp)
+
+`POST /api/help-requests/voice` recibe la nota en el campo `audio` (`multipart/form-data`; webm, ogg, mp3, wav o m4a, hasta 10 MB). La solicitud queda en `PENDING` con el texto `(nota de voz en transcripción)`, el worker la transcribe y luego sigue el mismo camino que una solicitud por texto (clasificar, embedding y top 3). El audio viaja en el trabajo de la cola y **no se guarda**: se descarta al transcribirlo (minimización de datos, Ley 1581), y por eso la API y el worker no necesitan un volumen compartido.
+
+| `TRANSCRIBE_PROVIDER` | Qué hace |
+| --- | --- |
+| `mock` (por defecto) | Devuelve siempre la misma duda de SQL. Sirve para programar, CI y la demo sin nodo de IA |
+| `whisper` | Llama al servidor de [whisper.cpp](https://github.com/ggml-org/whisper.cpp) en `WHISPER_URL` |
+
+En el nodo de IA (Mac): `brew install whisper-cpp ffmpeg`, descarga el modelo `ggml-base.bin` (ver la [lista de modelos](https://huggingface.co/ggerganov/whisper.cpp)) y deja corriendo:
+
+```bash
+whisper-server -m ggml-base.bin --convert --language es --host 0.0.0.0 --port 8178
+```
+
+`--convert` usa ffmpeg para aceptar el webm que graba el navegador. Si la nota no tiene texto útil (silencio o ruido), la solicitud se cierra con un mensaje que le pide al autor escribir la duda.
+
 - **Prefijo:** todas las rutas de la API van bajo `/api`.
 - **Swagger:** el contrato de la API está en http://localhost:3000/api/docs. Documenta cada controlador nuevo con `@ApiTags` y `@ApiOperation`, y cada DTO con `@ApiProperty` (ejemplo: `src/modules/health/health.controller.ts`). Así el equipo de frontend sabe qué enviar y qué recibir sin preguntar.
 - **Docker y Kubernetes:** la imagen Docker (`Dockerfile`) se usa para la API, el worker y las migraciones. Su despliegue está en [RedNexus-Platform](https://github.com/juanjosegl/RedNexus-Platform).

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsEmail, IsString, Length, MaxLength } from 'class-validator';
+import { Equals, IsEmail, IsString, Length, MaxLength } from 'class-validator';
 
 export class RegisterDto {
   @ApiProperty({ example: 'nuevo.demo@rednexus.dev' })
@@ -21,4 +21,15 @@ export class RegisterDto {
   @IsString()
   @Length(2, 80)
   name: string;
+
+  @ApiProperty({
+    example: true,
+    description:
+      'Autorización del tratamiento de datos personales (Ley 1581 de 2012). Debe ser true',
+  })
+  @Equals(true, {
+    message:
+      'Debes autorizar el tratamiento de tus datos personales para registrarte',
+  })
+  acceptsDataPolicy: boolean;
 }

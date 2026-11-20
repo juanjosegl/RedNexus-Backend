@@ -7,6 +7,7 @@ import {
   profileText,
 } from '../ai/ai-provider.js';
 import { MockAiProvider } from '../ai/providers/mock.provider.js';
+import { VOICE_PLACEHOLDER } from '../ai/transcription.js';
 import { overlap, tokenize, toPgVector } from '../ai/text.js';
 import { CANDIDATE_POOL, type Candidate, rank } from './ranking.js';
 
@@ -44,8 +45,12 @@ export class MatchingService {
     const request = await this.prisma.helpRequest.findUnique({
       where: { id: requestId },
     });
-    // ya emparejada (reintento): no hacer nada
-    if (!request || request.status !== 'PENDING') {
+    // ya emparejada (reintento) o nota de voz sin transcribir: no hacer nada
+    if (
+      !request ||
+      request.status !== 'PENDING' ||
+      request.text === VOICE_PLACEHOLDER
+    ) {
       return { requestId, strategy: 'skipped', candidates: 0, ms: 0 };
     }
 

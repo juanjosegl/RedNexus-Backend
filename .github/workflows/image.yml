@@ -1,0 +1,137 @@
+# PL-01 y PL-02: imagen multiarquitectura en GHCR, escaneo con Trivy, SBOM con Syft y firma con Cosign.
+#
+# - En los PR solo se construye (linux/amd64) y se escanea; no se publica nada.
+# - Al fusionar en developer, test o main se construye para linux/amd64 y linux/arm64 (Windows y Mac del
+#   equipo), se publica en ghcr.io con la etiqueta del commit (sha-xxxxxxx) y la de la rama, se escanea,
+#   se genera el SBOM (SPDX) y se firman la imagen y el SBOM con Cosign keyless (OIDC de GitHub, sin llaves).
+#
+# Verificar una imagen publicada:
+#   cosign verify ghcr.io/juanjosegl/rednexus-backend:developer \
+#     --certificate-identity-regexp 'https://github.com/juanjosegl/RedNexus-Backend/.*' \
+#     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+name: Imagen
+
+on:
+  pull_request:
+    branches: [developer, test, main]
+  push:
+    branches: [developer, test, main]
+  workflow_dispatch:
+
+concurrency:
+  group: imagen-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/juanjosegl/rednexus-backend
+
+jobs:
+  imagen:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # publicar en GHCR
+      id-token: write # firma keyless de Cosign
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Etiquetas
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+
+      - name: Construir para el PR (sin publicar)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: ${{ env.IMAGE }}:pr
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Entrar a GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y publicar (amd64 y arm64)
+        if: github.event_name != 'pull_request'
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Imagen a revisar
+        id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "image=${IMAGE}:pr" >> "$GITHUB_OUTPUT"
+          else
+            echo "image=${IMAGE}@${{ steps.build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Escanear con Trivy (falla con vulnerabilidades críticas que tengan arreglo)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.ref.outputs.image }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          format: table
+          output: trivy.txt
+          exit-code: '0'
+
+      - name: Resumen de Trivy
+        run: |
+          {
+            echo '### Trivy: vulnerabilidades altas y críticas con arreglo disponible'
+            echo '```'
+            cat trivy.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if grep -qE 'CRITICAL: [1-9]' trivy.txt; then
+            echo "::error::La imagen tiene vulnerabilidades CRÍTICAS con arreglo disponible"
+            exit 1
+          fi
+
+      - name: Generar SBOM con Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.ref.outputs.image }}
+          format: spdx-json
+          output-file: sbom.spdx.json
+          artifact-name: sbom-${{ github.sha }}.spdx.json
+
+      - uses: sigstore/cosign-installer@v3
+        if: github.event_name != 'pull_request'
+
+      - name: Firmar la imagen y adjuntar el SBOM firmado
+        if: github.event_name != 'pull_request'
+        env:
+          REF: ${{ steps.ref.outputs.image }}
+        run: |
+          cosign sign --yes "$REF"
+          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "$REF"
+          {
+            echo '### Imagen publicada y firmada'
+            echo
+            echo "- Digest: \`$REF\`"
+            echo "- Etiquetas: \`$(echo '${{ steps.meta.outputs.tags }}' | tr '\n' ' ')\`"
+          } >> "$GITHUB_STEP_SUMMARY"

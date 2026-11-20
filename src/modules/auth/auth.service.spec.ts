@@ -36,9 +36,12 @@ describe('AuthService', () => {
       email: user.email,
       password: 'demo12345',
       name: 'Ana',
+      acceptsDataPolicy: true,
     });
 
-    const { passwordHash } = prisma.user.create.mock.calls[0][0].data;
+    const { passwordHash, consentAt } =
+      prisma.user.create.mock.calls[0][0].data;
+    expect(consentAt).toBeInstanceOf(Date);
     expect(passwordHash).not.toBe('demo12345');
     expect(await bcrypt.compare('demo12345', passwordHash)).toBe(true);
     expect(res.user).not.toHaveProperty('passwordHash');
@@ -48,7 +51,12 @@ describe('AuthService', () => {
   it('rechaza un email ya registrado', async () => {
     const { auth } = setup({ passwordHash: 'x' });
     await expect(
-      auth.register({ email: user.email, password: 'demo12345', name: 'Ana' }),
+      auth.register({
+        email: user.email,
+        password: 'demo12345',
+        name: 'Ana',
+        acceptsDataPolicy: true,
+      }),
     ).rejects.toThrow(ConflictException);
   });
 
@@ -68,5 +76,26 @@ describe('AuthService', () => {
     await expect(
       missing.auth.login({ email: user.email, password: 'demo12345' }),
     ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('exige autorizar el tratamiento de datos (Ley 1581)', async () => {
+    const { plainToInstance } = await import('class-transformer');
+    const { validate } = await import('class-validator');
+    const { RegisterDto } = await import('./dto/register.dto.js');
+    const base = {
+      email: 'a@rednexus.dev',
+      password: 'demo12345',
+      name: 'Ana',
+    };
+    const without = await validate(plainToInstance(RegisterDto, base));
+    expect(without.map((e) => e.property)).toContain('acceptsDataPolicy');
+    const rejected = await validate(
+      plainToInstance(RegisterDto, { ...base, acceptsDataPolicy: false }),
+    );
+    expect(rejected).toHaveLength(1);
+    const ok = await validate(
+      plainToInstance(RegisterDto, { ...base, acceptsDataPolicy: true }),
+    );
+    expect(ok).toHaveLength(0);
   });
 });

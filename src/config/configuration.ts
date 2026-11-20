@@ -16,5 +16,14 @@ export default () => ({
     embedModel: process.env.OLLAMA_EMBED_MODEL ?? 'nomic-embed-text',
     timeoutMs: parseInt(process.env.OLLAMA_TIMEOUT_MS ?? '20000', 10),
   },
+  // Asistente de soporte (RAG en Open WebUI). Las variables se documentan en BE-09.
+  support: {
+    // mock | openwebui
+    provider: process.env.SUPPORT_PROVIDER ?? 'mock',
+    openWebUiUrl: process.env.OPENWEBUI_URL ?? 'http://localhost:3001',
+    apiKey: process.env.OPENWEBUI_API_KEY ?? '',
+    model: process.env.SUPPORT_MODEL ?? 'asistente-rednexus',
+    timeoutMs: parseInt(process.env.SUPPORT_TIMEOUT_MS ?? '60000', 10),
+  },
   jwtSecret: process.env.JWT_SECRET,
 });

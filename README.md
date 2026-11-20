@@ -33,9 +33,11 @@ En otra terminal, el worker de IA: `npm run start:worker:dev`. Al arrancar calcu
 | `AI_PROVIDER` | Qué hace | Cuándo usarlo |
 | --- | --- | --- |
 | `mock` (por defecto) | Embeddings por palabras en común, clasificación por palabras clave y explicación con plantilla. Sin red | Programar, CI, y cuando el nodo de IA está apagado |
-| `ollama` | `nomic-embed-text` para embeddings y `llama3.2:3b` para clasificar y explicar | Demo y experimentos |
+| `ollama` | `paraphrase-multilingual` para embeddings y `qwen2.5:3b` para clasificar y explicar | Demo y experimentos |
 
-Para pasar a Ollama: `ollama pull nomic-embed-text && ollama pull llama3.2:3b`, pon `AI_PROVIDER=ollama` en `.env`, vuelve a correr `npm run db:seed` (borra los embeddings del mock, que no son comparables con los de Ollama) y reinicia el worker.
+Para pasar a Ollama: `ollama pull paraphrase-multilingual && ollama pull qwen2.5:3b`, pon `AI_PROVIDER=ollama` en `.env`, vuelve a correr `npm run db:seed` (borra los embeddings del mock, que no son comparables con los de Ollama) y reinicia el worker.
+
+**Configuración del emparejamiento (IA-07).** Los modelos, el peso entre similitud y calificación, el umbral, la búsqueda híbrida (embedding + coincidencia de palabras) y el uso de la clasificación en la consulta se eligieron con experimentos en MLflow sobre un dataset sintético de 100 solicitudes ([RedNexus-Platform/ml](https://github.com/juanjosegl/RedNexus-Platform/tree/developer/ml)). Los valores por defecto están en `src/modules/matching/matching-config.ts` y se cambian con las variables `MATCH_*` de `.env.example`; el log del worker dice qué versión de `rednexus-matching` está usando.
 
 Si Ollama no responde, el worker no falla: reintenta, empareja por etiquetas y explica con la plantilla (degradación elegante). El log del worker dice qué estrategia usó y cuánto tardó.
 

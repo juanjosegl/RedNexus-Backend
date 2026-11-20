@@ -1,8 +1,10 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service.js';
@@ -11,8 +13,24 @@ import {
   AiJob,
   defaultJobOptions,
   type MatchJobData,
+  type TranscribeJobData,
+  transcribeJobOptions,
 } from '../queue/queue.constants.js';
+import {
+  AUDIO_MIME_TYPES,
+  baseMimeType,
+  isSupportedAudio,
+  MAX_AUDIO_BYTES,
+  VOICE_PLACEHOLDER,
+} from '../ai/transcription.js';
 import { CreateHelpRequestDto } from './dto/help-request.dto.js';
+
+// Lo mínimo que se usa del archivo que entrega multer (FileInterceptor)
+export interface UploadedAudio {
+  buffer: Buffer;
+  mimetype: string;
+  size: number;
+}
 
 const summarySelect = {
   id: true,
@@ -40,6 +58,39 @@ export class HelpRequestsService {
       AiJob.Match,
       { requestId: request.id } satisfies MatchJobData,
       defaultJobOptions,
+    );
+    return request;
+  }
+
+  // BE-04: la nota se transcribe en el worker (IA-05) y luego sigue el flujo normal
+  async createFromVoice(authorId: string, audio: UploadedAudio | undefined) {
+    if (!audio || audio.size === 0) {
+      throw new BadRequestException(
+        'Adjunta la nota de voz en el campo "audio"',
+      );
+    }
+    if (!isSupportedAudio(audio.mimetype)) {
+      throw new UnsupportedMediaTypeException(
+        `Formato no soportado (${audio.mimetype}). Usa: ${AUDIO_MIME_TYPES.join(', ')}`,
+      );
+    }
+    if (audio.size > MAX_AUDIO_BYTES) {
+      throw new BadRequestException('La nota de voz pesa más de 10 MB');
+    }
+    const mimeType = baseMimeType(audio.mimetype);
+    const request = await this.prisma.helpRequest.create({
+      // audioPath guarda el formato; el audio no se almacena (se descarta al transcribir)
+      data: { authorId, text: VOICE_PLACEHOLDER, audioPath: `voz:${mimeType}` },
+      select: { id: true, status: true },
+    });
+    await this.queue.add(
+      AiJob.Transcribe,
+      {
+        requestId: request.id,
+        mimeType,
+        audioBase64: audio.buffer.toString('base64'),
+      } satisfies TranscribeJobData,
+      transcribeJobOptions,
     );
     return request;
   }

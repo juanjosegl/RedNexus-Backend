@@ -74,4 +74,28 @@ describe('MatchingService', () => {
     expect((await service.matchRequest('r1')).strategy).toBe('skipped');
     expect(prisma.match.createMany).not.toHaveBeenCalled();
   });
+
+  it('si la IA responde pero nadie supera el umbral, no propone a nadie', async () => {
+    const vector = Array.from({ length: 768 }, () => 0.01);
+    const { prisma, service } = setup({
+      embed: () => Promise.resolve(vector),
+      classify: () =>
+        Promise.resolve({ area: 'general', topics: [], level: 'basico' }),
+      explain: () => Promise.resolve('x'),
+    });
+    prisma.$queryRaw.mockResolvedValue([
+      { ...profiles[1], similarity: 0.05, avgRating: null },
+    ]);
+    prisma.helpRequest.findUnique.mockResolvedValue({
+      id: 'r1',
+      authorId: 'autor',
+      text: 'Cómo preparo una lasaña de carne',
+      status: 'PENDING',
+    });
+
+    const result = await service.matchRequest('r1');
+
+    expect(result).toMatchObject({ strategy: 'semantic', candidates: 0 });
+    expect(prisma.user.findMany).not.toHaveBeenCalled();
+  });
 });

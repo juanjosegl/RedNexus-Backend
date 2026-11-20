@@ -74,12 +74,15 @@ export class MatchingService {
 
     let strategy: MatchResult['strategy'] = 'semantic';
     let top: (Candidate & { score: number })[] = [];
+    // hay perfiles indexados y la IA respondió: si nadie supera el umbral, no se propone a nadie
+    // (es una duda que nadie de la red cubre; antes se proponía a cualquiera)
+    let semanticWorked = false;
     if (embedding) {
       await this.prisma.$executeRaw`
         UPDATE "HelpRequest" SET embedding = ${toPgVector(embedding)}::vector WHERE id = ${requestId}`;
-      const pool = (
-        await this.semanticCandidates(embedding, request.authorId)
-      ).map((c) => ({
+      const raw = await this.semanticCandidates(embedding, request.authorId);
+      semanticWorked = raw.length > 0;
+      const pool = raw.map((c) => ({
         ...c,
         similarity: hybridSimilarity(
           c.similarity,
@@ -89,8 +92,8 @@ export class MatchingService {
       }));
       top = rank(pool, request.authorId, undefined, this.config);
     }
-    // sin IA, sin perfiles indexados o nadie supera el umbral -> respaldo por etiquetas
-    if (top.length === 0) {
+    // sin IA o sin perfiles indexados -> respaldo por etiquetas (degradación controlada)
+    if (!semanticWorked) {
       strategy = 'tags';
       const pool = await this.tagCandidates(
         queryText(request.text, classification, { enrichQuery: true }),
@@ -101,6 +104,7 @@ export class MatchingService {
         minSimilarity: 0, // tagCandidates ya descarta a quien no comparte ninguna palabra
       });
     }
+
     const explanations = await Promise.all(
       top.map(
         async (c) =>

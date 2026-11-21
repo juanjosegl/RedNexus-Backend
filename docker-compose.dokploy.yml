@@ -11,11 +11,15 @@
 #   SEED_DEMO          true (por defecto) carga los perfiles sintéticos en cada despliegue (upsert)
 #   SUPPORT_PROVIDER   mock (por defecto) u openwebui (asistente de soporte con RAG)
 #   OPENWEBUI_URL, OPENWEBUI_API_KEY, SUPPORT_MODEL, SUPPORT_TIMEOUT_MS  solo si es openwebui.
+#   OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_HEADERS  opcionales: trazas y métricas a Grafana Cloud.
+#   FRONTEND_TAG       etiqueta de ghcr.io/juanjosegl/rednexus-frontend (por defecto main)
 #                      La API key va solo en la pestaña Environment, nunca en el repo.
 #
 # Reglas por ser un servidor compartido con otros grupos:
-#   - Sin "ports": nada se publica en el host (el 3000 es de Dokploy). La API sale por Traefik
-#     con el dominio que se asigna en la pestaña Domains de Dokploy (servicio rednexus-api, puerto 3000).
+#   - Sin "ports": nada se publica en el host (el 3000 es de Dokploy). La app sale por Traefik con el
+#     dominio que se asigna en la pestaña Domains de Dokploy: servicio rednexus-web, puerto 8080
+#     (el frontend reenvía /api a la API, como en Kubernetes). Opcional: otro dominio para
+#     rednexus-api, puerto 3000, si se quiere Swagger aparte.
 #   - Sin container_name, y nombres de servicio con prefijo para no chocar en la red de Dokploy.
 #   - Límite de memoria en cada servicio.
 #
@@ -40,6 +44,9 @@ x-api-env: &api-env
   OPENWEBUI_API_KEY: ${OPENWEBUI_API_KEY:-}
   SUPPORT_MODEL: ${SUPPORT_MODEL:-asistente-rednexus}
   SUPPORT_TIMEOUT_MS: ${SUPPORT_TIMEOUT_MS:-60000}
+  # PL-07: vacío = telemetría apagada (Grafana Cloud: endpoint OTLP y cabecera de autorización)
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS:-}
 
 services:
   rednexus-postgres:
@@ -113,6 +120,20 @@ services:
       rednexus-redis:
         condition: service_healthy
     mem_limit: 384m
+
+  # Frontend: la imagen firmada de GHCR (workflow "Imagen" de RedNexus-Frontend). Nginx sirve la
+  # app y reenvía /api a rednexus-api, así que en Dokploy basta UN dominio, el de este servicio.
+  # pull_policy always: cada redespliegue trae la última imagen de main.
+  rednexus-web:
+    image: ghcr.io/juanjosegl/rednexus-frontend:${FRONTEND_TAG:-main}
+    pull_policy: always
+    restart: unless-stopped
+    environment:
+      API_UPSTREAM: http://rednexus-api:3000
+    depends_on:
+      rednexus-api:
+        condition: service_healthy
+    mem_limit: 64m
 
 volumes:
   pgdata:

@@ -1,8 +1,11 @@
+// PL-07: primero OpenTelemetry (solo se activa con OTEL_EXPORTER_OTLP_ENDPOINT)
+import './telemetry/telemetry.js';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
+import { HttpRouteInterceptor } from './telemetry/http-route.interceptor.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +14,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalInterceptors(new HttpRouteInterceptor());
   // Cierre ordenado al recibir SIGTERM (Kubernetes, docker stop): sin esto Node, como
   // proceso principal del contenedor, ignora la señal y lo matan tras 30 s
   app.enableShutdownHooks();

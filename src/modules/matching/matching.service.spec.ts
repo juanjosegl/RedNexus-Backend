@@ -27,6 +27,7 @@ function setup(ai: Partial<AiProvider>) {
         authorId: 'autor',
         text: 'No entiendo los joins en SQL',
         status: 'PENDING',
+        createdAt: new Date(Date.now() - 1500),
       }),
       update: vi.fn(),
     },
@@ -55,6 +56,8 @@ describe('MatchingService', () => {
     const result = await service.matchRequest('r1');
 
     expect(result).toMatchObject({ strategy: 'tags', candidates: 1 });
+    // PL-07: la latencia del SLO se mide desde que se creó la solicitud
+    expect(result.latencyMs).toBeGreaterThanOrEqual(1500);
     const [match] = prisma.match.createMany.mock.calls[0][0].data;
     expect(match).toMatchObject({ requestId: 'r1', helperId: 'ana' });
     expect(match.explanation).toContain('sql');
@@ -91,6 +94,7 @@ describe('MatchingService', () => {
       authorId: 'autor',
       text: 'Cómo preparo una lasaña de carne',
       status: 'PENDING',
+      createdAt: new Date(),
     });
 
     const result = await service.matchRequest('r1');

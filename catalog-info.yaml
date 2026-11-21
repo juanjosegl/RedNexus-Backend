@@ -1,0 +1,51 @@
+# PL-08: catálogo de servicios (formato de Backstage). El sistema, el equipo y la
+# infraestructura se declaran en RedNexus-Platform/catalog-info.yaml.
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: rednexus-backend
+  title: RedNexus Backend
+  description: API NestJS y worker de IA (clasificación, embeddings, emparejamiento top 3, notas de voz)
+  annotations:
+    github.com/project-slug: juanjosegl/RedNexus-Backend
+  links:
+    - url: http://localhost:3000/api/docs
+      title: Swagger (local)
+spec:
+  type: service
+  lifecycle: production
+  owner: group:rednexus-equipo
+  system: rednexus
+  providesApis:
+    - rednexus-api
+  dependsOn:
+    - resource:postgres
+    - resource:redis
+    - resource:ollama
+    - component:asistente-rag
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: rednexus-api
+  title: API de RedNexus
+  description: REST bajo /api con JWT. El contrato completo está en Swagger (/api/docs y /api/docs-json)
+spec:
+  type: openapi
+  lifecycle: production
+  owner: group:rednexus-equipo
+  system: rednexus
+  definition: |
+    openapi: 3.0.0
+    info:
+      title: RedNexus API
+      version: 0.1.0
+      description: >-
+        Contrato resumido para el catálogo. El completo lo genera la API en /api/docs-json.
+    paths:
+      /api/health:
+        get:
+          summary: Estado de la API
+          responses:
+            '200':
+              description: ok

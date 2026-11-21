@@ -79,6 +79,25 @@ Para conectarlo a Open WebUI:
 
 Si Open WebUI no responde o tarda más de `SUPPORT_TIMEOUT_MS`, la API responde 503 con un mensaje amable y el frontend lo muestra en el chat.
 
+### Observabilidad (OpenTelemetry)
+
+La API y el worker envían trazas y métricas por OTLP **solo si existe `OTEL_EXPORTER_OTLP_ENDPOINT`**; sin esa variable no se carga nada (el CI y el desarrollo no cambian). El código está en `src/telemetry/`.
+
+| Señal | Nombre | Para qué |
+| --- | --- | --- |
+| Traza | `POST /api/help-requests` → `match process` | La API pasa el contexto (`traceparent`) dentro del trabajo de BullMQ y el worker lo continúa: la solicitud se ve de punta a punta en una sola traza |
+| Métrica | `rednexus.match.latency` (s, por `strategy`) | Tiempo desde que se crea la solicitud hasta que tiene candidatos. Es el SLI del SLO: **el 95 % en menos de 30 s** |
+| Métrica | `rednexus.job.duration` (s, por `rednexus.job.name` y `outcome`) | Duración y errores de cada trabajo de IA |
+| Métrica | `http.server.request.duration` (por `http.route`) | Latencia y errores de cada endpoint |
+
+| Variable | Ejemplo | Qué es |
+| --- | --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Collector OTLP/HTTP. Vacío = telemetría apagada |
+| `OTEL_EXPORTER_OTLP_HEADERS` | `Authorization=Basic ...` | Solo para Grafana Cloud |
+| `OTEL_SERVICE_NAME` | `rednexus-api` | Opcional; por defecto `rednexus-api` o `rednexus-worker` según el proceso |
+
+Para verlo en local con Grafana, Tempo y Prometheus en un solo contenedor y el tablero del SLO ya cargado, sigue [RedNexus-Platform/observabilidad](https://github.com/juanjosegl/RedNexus-Platform/tree/developer/observabilidad).
+
 ### API y despliegue
 
 - **Prefijo:** todas las rutas de la API van bajo `/api`.
@@ -88,7 +107,11 @@ Si Open WebUI no responde o tarda más de `SUPPORT_TIMEOUT_MS`, la API responde 
   1. En [Neon](https://neon.tech) crea un proyecto (región AWS US East) y copia la cadena de conexión **directa** (sin `-pooler`), con `?sslmode=require`.
   2. En [Render](https://render.com), **New → Blueprint**, conecta GitHub con acceso a RedNexus-Backend y RedNexus-Frontend, elige este repo y pega la cadena de Neon en `DATABASE_URL`.
   3. Si la API no queda en `https://rednexus-api.onrender.com`, cambia `VITE_API_URL` de `rednexus-web` en `render.yaml` por la URL real.
-- **Dokploy (servidor del diplomado):** `docker-compose.dokploy.yml` levanta Postgres, Redis, migraciones, API y worker sin publicar puertos. Cada push a `main` con el CI en verde vuelve a desplegar (job `deploy`, secreto `DOKPLOY_WEBHOOK_URL`).
+- **Dokploy (servidor del diplomado):** `docker-compose.dokploy.yml` levanta Postgres, Redis, migraciones, API, worker y el frontend (imagen firmada `ghcr.io/juanjosegl/rednexus-frontend`) sin publicar puertos. Cada push a `main` con el CI en verde vuelve a desplegar (job `deploy`, secreto `DOKPLOY_WEBHOOK_URL`); el frontend pide lo mismo al publicar su imagen en `main`.
+  1. En Dokploy: **Create Project → Compose**, proveedor GitHub, repo `RedNexus-Backend`, rama `main`, archivo `docker-compose.dokploy.yml`.
+  2. **Environment:** `POSTGRES_PASSWORD` y `JWT_SECRET` (`openssl rand -hex 24` y `openssl rand -hex 32`). El resto tiene valores por defecto (IA en `mock`).
+  3. **Domains:** servicio `rednexus-web`, puerto `8080`, ruta `/`. Es la app completa: Nginx reenvía `/api` a la API.
+  4. **Deploy**. Luego, en **Deployments → Webhook**, copia la URL y guárdala como secreto `DOKPLOY_WEBHOOK_URL` en este repo y en RedNexus-Frontend.
 
 ## Estructura
 
@@ -97,6 +120,7 @@ src/
 ├── main.ts            # API HTTP
 ├── worker.ts          # worker de IA (consume la cola BullMQ)
 ├── config/            # variables de entorno
+├── telemetry/         # OpenTelemetry: trazas, métricas y SLO (PL-07)
 ├── prisma/            # PrismaService
 └── modules/
     ├── auth/          # registro, login, JWT

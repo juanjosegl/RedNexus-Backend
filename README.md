@@ -79,6 +79,25 @@ Para conectarlo a Open WebUI:
 
 Si Open WebUI no responde o tarda más de `SUPPORT_TIMEOUT_MS`, la API responde 503 con un mensaje amable y el frontend lo muestra en el chat.
 
+### Observabilidad (OpenTelemetry)
+
+La API y el worker envían trazas y métricas por OTLP **solo si existe `OTEL_EXPORTER_OTLP_ENDPOINT`**; sin esa variable no se carga nada (el CI y el desarrollo no cambian). El código está en `src/telemetry/`.
+
+| Señal | Nombre | Para qué |
+| --- | --- | --- |
+| Traza | `POST /api/help-requests` → `match process` | La API pasa el contexto (`traceparent`) dentro del trabajo de BullMQ y el worker lo continúa: la solicitud se ve de punta a punta en una sola traza |
+| Métrica | `rednexus.match.latency` (s, por `strategy`) | Tiempo desde que se crea la solicitud hasta que tiene candidatos. Es el SLI del SLO: **el 95 % en menos de 30 s** |
+| Métrica | `rednexus.job.duration` (s, por `rednexus.job.name` y `outcome`) | Duración y errores de cada trabajo de IA |
+| Métrica | `http.server.request.duration` (por `http.route`) | Latencia y errores de cada endpoint |
+
+| Variable | Ejemplo | Qué es |
+| --- | --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | Collector OTLP/HTTP. Vacío = telemetría apagada |
+| `OTEL_EXPORTER_OTLP_HEADERS` | `Authorization=Basic ...` | Solo para Grafana Cloud |
+| `OTEL_SERVICE_NAME` | `rednexus-api` | Opcional; por defecto `rednexus-api` o `rednexus-worker` según el proceso |
+
+Para verlo en local con Grafana, Tempo y Prometheus en un solo contenedor y el tablero del SLO ya cargado, sigue [RedNexus-Platform/observabilidad](https://github.com/juanjosegl/RedNexus-Platform/tree/developer/observabilidad).
+
 ### API y despliegue
 
 - **Prefijo:** todas las rutas de la API van bajo `/api`.
@@ -97,6 +116,7 @@ src/
 ├── main.ts            # API HTTP
 ├── worker.ts          # worker de IA (consume la cola BullMQ)
 ├── config/            # variables de entorno
+├── telemetry/         # OpenTelemetry: trazas, métricas y SLO (PL-07)
 ├── prisma/            # PrismaService
 └── modules/
     ├── auth/          # registro, login, JWT

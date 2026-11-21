@@ -14,6 +14,7 @@ import {
   type Transcriber,
   VOICE_PLACEHOLDER,
 } from './transcription.js';
+import { withTraceContext } from '../../telemetry/instruments.js';
 
 // mínimo que exige una solicitud por texto (CreateHelpRequestDto)
 const MIN_TEXT = 10;
@@ -92,7 +93,7 @@ export class TranscriptionService {
     });
     await this.queue.add(
       AiJob.Match,
-      { requestId: request.id } satisfies MatchJobData,
+      withTraceContext({ requestId: request.id } satisfies MatchJobData),
       defaultJobOptions,
     );
     const ms = Date.now() - started;

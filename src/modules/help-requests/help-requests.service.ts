@@ -24,6 +24,7 @@ import {
   VOICE_PLACEHOLDER,
 } from '../ai/transcription.js';
 import { CreateHelpRequestDto } from './dto/help-request.dto.js';
+import { withTraceContext } from '../../telemetry/instruments.js';
 
 // Lo mínimo que se usa del archivo que entrega multer (FileInterceptor)
 export interface UploadedAudio {
@@ -56,7 +57,7 @@ export class HelpRequestsService {
     });
     await this.queue.add(
       AiJob.Match,
-      { requestId: request.id } satisfies MatchJobData,
+      withTraceContext({ requestId: request.id } satisfies MatchJobData),
       defaultJobOptions,
     );
     return request;
@@ -85,11 +86,11 @@ export class HelpRequestsService {
     });
     await this.queue.add(
       AiJob.Transcribe,
-      {
+      withTraceContext({
         requestId: request.id,
         mimeType,
         audioBase64: audio.buffer.toString('base64'),
-      } satisfies TranscribeJobData,
+      } satisfies TranscribeJobData),
       transcribeJobOptions,
     );
     return request;

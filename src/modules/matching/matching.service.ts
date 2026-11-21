@@ -27,6 +27,8 @@ export interface MatchResult {
   configVersion?: string;
   candidates: number;
   ms: number;
+  // PL-07: desde que se creó la solicitud hasta que tiene candidatos (SLI del SLO de 30 s)
+  latencyMs?: number;
 }
 
 // explicacion de respaldo si el LLM falla
@@ -146,6 +148,7 @@ export class MatchingService {
       configVersion: this.config.version,
       candidates: top.length,
       ms: Date.now() - started,
+      latencyMs: Date.now() - request.createdAt.getTime(),
     };
     this.logger.log(
       `Solicitud ${requestId}: ${result.candidates} candidatos por ${strategy} en ${result.ms} ms (IA: ${this.ai.name}, rednexus-matching v${this.config.version})`,

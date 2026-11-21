@@ -5,6 +5,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { MatchingService } from '../matching/matching.service.js';
 import { TranscriptionService } from './transcription.service.js';
 import { VOICE_PLACEHOLDER } from './transcription.js';
+import { recordMatch, runJobSpan } from '../../telemetry/instruments.js';
 import {
   AI_QUEUE,
   AiJob,
@@ -28,14 +29,24 @@ export class AiProcessor extends WorkerHost implements OnApplicationBootstrap {
     super();
   }
 
-  async process(job: Job) {
+  // PL-07: cada trabajo corre en un span que continúa la traza de la petición que lo encoló
+  process(job: Job) {
+    return runJobSpan(job, () => this.handle(job));
+  }
+
+  private async handle(job: Job) {
     switch (job.name) {
       case AiJob.EmbedProfile:
         return this.matching.indexProfile(
           (job.data as EmbedProfileJobData).userId,
         );
-      case AiJob.Match:
-        return this.matching.matchRequest((job.data as MatchJobData).requestId);
+      case AiJob.Match: {
+        const result = await this.matching.matchRequest(
+          (job.data as MatchJobData).requestId,
+        );
+        recordMatch(result);
+        return result;
+      }
       case AiJob.Transcribe:
         return this.transcription.transcribeRequest(
           job.data as TranscribeJobData,

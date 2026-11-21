@@ -10,6 +10,7 @@ import {
 } from '../queue/queue.constants.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { userSelect } from './dto/user.dto.js';
+import { withTraceContext } from '../../telemetry/instruments.js';
 
 @Injectable()
 export class UsersService {
@@ -32,7 +33,7 @@ export class UsersService {
     if (dto.bio !== undefined || dto.tags !== undefined) {
       await this.queue.add(
         AiJob.EmbedProfile,
-        { userId } satisfies EmbedProfileJobData,
+        withTraceContext({ userId } satisfies EmbedProfileJobData),
         defaultJobOptions,
       );
     }

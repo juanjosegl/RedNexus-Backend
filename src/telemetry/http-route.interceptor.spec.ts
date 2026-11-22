@@ -51,4 +51,22 @@ describe('HttpRouteInterceptor (PL-07)', () => {
     const nombres = exporter.getFinishedSpans().map((s) => s.name);
     expect(nombres).toContain('GET /api/help-requests/:id');
   });
+  it('no hace nada fuera de http y sigue la cadena', () => {
+    const rpc = {
+      getType: () => 'rpc',
+      switchToHttp: () => {
+        throw new Error('no debe leer el request fuera de http');
+      },
+    } as unknown as ExecutionContext;
+    let llamadas = 0;
+    const siguiente: CallHandler = {
+      handle: () => {
+        llamadas += 1;
+        return of('ok');
+      },
+    };
+
+    expect(() => interceptor.intercept(rpc, siguiente)).not.toThrow();
+    expect(llamadas).toBe(1);
+  });
 });

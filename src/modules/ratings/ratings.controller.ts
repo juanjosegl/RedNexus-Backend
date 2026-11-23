@@ -4,8 +4,10 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNotFoundResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, type JwtPayload } from '../auth/auth.decorators.js';
 import { CreateRatingDto, RatingDto } from './dto/rating.dto.js';
@@ -20,6 +22,12 @@ export class RatingsController {
   @Post()
   @ApiOperation({ summary: 'Califica de 1 a 5 la ayuda recibida' })
   @ApiCreatedResponse({ type: RatingDto })
+  @ApiUnauthorizedResponse({
+    description: 'No se proporcionó un token válido o no está autenticado',
+  })
+  @ApiNotFoundResponse({
+    description: 'La solicitud asociada a la calificación no existe',
+  })
   @ApiForbiddenResponse({ description: 'La solicitud es de otro usuario' })
   @ApiConflictResponse({
     description: 'La solicitud no fue aceptada o ya tiene calificacion',

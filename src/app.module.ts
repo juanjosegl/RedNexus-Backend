@@ -8,6 +8,7 @@ import { MatchingModule } from './modules/matching/matching.module.js';
 import { PqrsModule } from './modules/pqrs/pqrs.module.js';
 import { QueueModule } from './modules/queue/queue.module.js';
 import { RatingsModule } from './modules/ratings/ratings.module.js';
+import { StatsModule } from './modules/stats/stats.module.js';
 import { SupportModule } from './modules/support/support.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -23,6 +24,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     HelpRequestsModule,
     MatchingModule,
     RatingsModule,
+    StatsModule,
     SupportModule,
     PqrsModule,
   ],

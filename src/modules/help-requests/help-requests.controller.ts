@@ -16,13 +16,14 @@ import {
   ApiBody,
   ApiConsumes,
   ApiCreatedResponse,
-  ApiPayloadTooLargeResponse,
-  ApiUnsupportedMediaTypeResponse,
   ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiPayloadTooLargeResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
+  ApiUnsupportedMediaTypeResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, type JwtPayload } from '../auth/auth.decorators.js';
 import {
@@ -39,6 +40,7 @@ import {
 
 @ApiTags('help-requests')
 @ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Falta el token o es inválido' })
 @Controller('help-requests')
 export class HelpRequestsController {
   constructor(private readonly helpRequests: HelpRequestsService) {}

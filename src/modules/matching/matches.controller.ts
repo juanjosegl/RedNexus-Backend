@@ -10,9 +10,11 @@ import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiForbiddenResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, type JwtPayload } from '../auth/auth.decorators.js';
 import {
@@ -24,6 +26,7 @@ import { MatchesService } from './matches.service.js';
 
 @ApiTags('matches')
 @ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Falta el token o es inválido' })
 @Controller('matches')
 export class MatchesController {
   constructor(private readonly matches: MatchesService) {}
@@ -39,6 +42,7 @@ export class MatchesController {
   @HttpCode(200)
   @ApiOperation({ summary: 'Acepto ayudar; devuelve el email del autor' })
   @ApiOkResponse({ type: AcceptMatchDto })
+  @ApiNotFoundResponse({ description: 'El candidato no existe' })
   @ApiForbiddenResponse({ description: 'El candidato es otra persona' })
   @ApiConflictResponse({ description: 'Ya fue aceptada por otro o respondida' })
   accept(
@@ -52,6 +56,7 @@ export class MatchesController {
   @HttpCode(200)
   @ApiOperation({ summary: 'No puedo ayudar con esta solicitud' })
   @ApiOkResponse({ type: RejectMatchDto })
+  @ApiNotFoundResponse({ description: 'El candidato no existe' })
   @ApiForbiddenResponse({ description: 'El candidato es otra persona' })
   @ApiConflictResponse({ description: 'Ya respondiste' })
   reject(

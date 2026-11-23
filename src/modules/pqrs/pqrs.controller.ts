@@ -15,6 +15,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, type JwtPayload } from '../auth/auth.decorators.js';
 import { CreatePqrsDto, PqrsDto } from './dto/pqrs.dto.js';
@@ -22,6 +23,7 @@ import { PqrsService } from './pqrs.service.js';
 
 @ApiTags('pqrs')
 @ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Falta el token o es inválido' })
 @Controller('pqrs')
 export class PqrsController {
   constructor(private readonly pqrs: PqrsService) {}

@@ -15,6 +15,7 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { CurrentUser, type JwtPayload } from '../auth/auth.decorators.js';
 import { ProfileDto, PublicProfileDto } from './dto/profile.dto.js';
@@ -23,6 +24,7 @@ import { UsersService } from './users.service.js';
 
 @ApiTags('users')
 @ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Falta el token o es inválido' })
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService) {}

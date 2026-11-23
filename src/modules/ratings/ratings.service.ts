@@ -54,4 +54,32 @@ export class RatingsService {
       throw error;
     }
   }
+
+  async received(helperId: string) {
+    const ratings = await this.prisma.rating.findMany({
+      where: { helperId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      select: {
+        stars: true,
+        createdAt: true,
+        request: {
+          select: {
+            id: true,
+            text: true,
+            area: true,
+          },
+        },
+      },
+    });
+
+    return ratings.map(({ request, ...rating }) => ({
+      ...rating,
+      request: {
+        requestId: request.id,
+        text: request.text.slice(0, 120),
+        area: request.area,
+      },
+    }));
+  }
 }
